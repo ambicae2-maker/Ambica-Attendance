@@ -1,0 +1,90 @@
+@import "tailwindcss";
+@import "./theme/tokens.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Maps the tokens in theme/tokens.css to Tailwind classes. Edit colors there, not here. */
+@theme inline {
+  --font-display: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Manrope Variable", ui-sans-serif, system-ui, "Noto Sans Gujarati", "Noto Sans Devanagari", sans-serif;
+
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 10px);
+
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
+  --color-steel: var(--steel);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  --color-present: var(--present);
+  --color-present-soft: var(--present-soft);
+  --color-present-ink: var(--present-ink);
+  --color-half: var(--half);
+  --color-half-soft: var(--half-soft);
+  --color-half-ink: var(--half-ink);
+  --color-absent: var(--absent);
+  --color-absent-soft: var(--absent-soft);
+  --color-absent-ink: var(--absent-ink);
+  --color-holiday: var(--holiday);
+  --color-holiday-soft: var(--holiday-soft);
+  --color-holiday-ink: var(--holiday-ink);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+    -webkit-tap-highlight-color: transparent;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    min-height: 100dvh;
+    overscroll-behavior-y: none;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  ::selection {
+    background: var(--color-brand);
+    color: var(--color-brand-foreground);
+  }
+  input, select, textarea, button {
+    font: inherit;
+  }
+}
+
+@layer utilities {
+  .font-display { font-family: var(--font-display); }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+  .pt-safe { padding-top: max(env(safe-area-inset-top), 0px); }
+  .shadow-premium { box-shadow: 0 24px 48px -20px color-mix(in oklch, var(--ink) 35%, transparent); }
+  .shadow-soft { box-shadow: 0 1px 2px color-mix(in oklch, var(--ink) 6%, transparent), 0 8px 24px -12px color-mix(in oklch, var(--ink) 18%, transparent); }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; }
+}

@@ -1,0 +1,89 @@
+/*
+ * ─────────────────────────────────────────────────────────────
+ *  AMBICA ATTENDANCE — COLOR SYSTEM (the ONLY place to edit colors)
+ * ─────────────────────────────────────────────────────────────
+ *  Change a value here and it updates everywhere in the app:
+ *  buttons, cards, calendar, charts, salary slip, badges, etc.
+ *
+ *  Classes available in components (Tailwind):
+ *    bg-brand text-brand border-brand     → main red
+ *    bg-gold  text-gold                   → gold highlight
+ *    bg-ink   text-ink                    → near-black panels
+ *    bg-present / bg-present-soft / text-present-ink  (same for half, absent, holiday)
+ *
+ *  Brand values match the Ambica Enterprise website.
+ *  If you change --ink, also update THEME_COLOR in vite.config.ts and
+ *  <meta name="theme-color"> in index.html (phone status bar color).
+ */
+
+:root {
+  /* ── Brand ─────────────────────────────── */
+  --brand: oklch(0.5 0.2 27);               /* deep red (logo red)  */
+  --brand-foreground: oklch(0.99 0 0);      /* text on red          */
+  --gold: oklch(0.82 0.16 85);              /* golden accent        */
+  --gold-foreground: oklch(0.2 0.02 90);    /* text on gold         */
+  --ink: oklch(0.16 0.01 260);              /* near-black navy      */
+  --ink-foreground: oklch(0.98 0.003 260);  /* text on ink          */
+  --steel: oklch(0.55 0.01 260);            /* mid gray             */
+
+  /* ── Surfaces ──────────────────────────── */
+  --background: oklch(0.975 0.003 260);
+  --foreground: oklch(0.18 0.01 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.01 260);
+  --muted: oklch(0.955 0.004 260);
+  --muted-foreground: oklch(0.48 0.01 260);
+  --border: oklch(0.91 0.004 260);
+  --input: oklch(0.88 0.005 260);
+  --ring: var(--brand);
+
+  /* ── Feedback ──────────────────────────── */
+  --success: oklch(0.6 0.15 150);
+  --warning: oklch(0.75 0.15 70);
+  --danger: oklch(0.56 0.22 20);
+
+  /* ── Attendance status colors ──────────── */
+  --present: oklch(0.62 0.15 152);          /* green  */
+  --present-soft: oklch(0.95 0.045 152);
+  --present-ink: oklch(0.38 0.1 152);
+
+  --half: oklch(0.8 0.15 80);               /* gold   */
+  --half-soft: oklch(0.96 0.05 88);
+  --half-ink: oklch(0.45 0.1 70);
+
+  --absent: oklch(0.42 0.025 260);          /* slate  */
+  --absent-soft: oklch(0.92 0.008 260);
+  --absent-ink: oklch(0.3 0.02 260);
+
+  --holiday: oklch(0.6 0.15 250);           /* blue   */
+  --holiday-soft: oklch(0.95 0.035 250);
+  --holiday-ink: oklch(0.4 0.12 255);
+
+  /* ── Shape ─────────────────────────────── */
+  --radius: 0.75rem;
+}
+
+/* Dark mode — only the values that change */
+.dark {
+  --background: oklch(0.14 0.008 260);
+  --foreground: oklch(0.96 0.003 260);
+  --card: oklch(0.19 0.01 260);
+  --card-foreground: oklch(0.96 0.003 260);
+  --muted: oklch(0.24 0.01 260);
+  --muted-foreground: oklch(0.7 0.01 260);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 16%);
+  --brand: oklch(0.6 0.21 27);
+  --ink: oklch(0.11 0.008 260);
+  --steel: oklch(0.7 0.01 260);
+
+  --present-soft: oklch(0.3 0.06 152);
+  --present-ink: oklch(0.85 0.1 152);
+  --half-soft: oklch(0.32 0.06 80);
+  --half-ink: oklch(0.88 0.1 85);
+  --absent: oklch(0.55 0.02 260);
+  --absent-soft: oklch(0.28 0.01 260);
+  --absent-ink: oklch(0.85 0.01 260);
+  --holiday-soft: oklch(0.3 0.06 250);
+  --holiday-ink: oklch(0.85 0.08 250);
+}
