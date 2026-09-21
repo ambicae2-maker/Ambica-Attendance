@@ -9,6 +9,11 @@ const THEME_COLOR = "#101218";
 
 export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
+  // Pre-bundle libraries used by lazy-loaded screens so the dev server never
+  // re-optimizes mid-session (which caused a blank page on first navigation).
+  optimizeDeps: {
+    include: ["date-fns", "framer-motion", "lucide-react", "sonner", "@radix-ui/react-dialog", "html-to-image", "jspdf", "idb-keyval"],
+  },
   plugins: [
     react(),
     tailwindcss(),
