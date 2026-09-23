@@ -11,7 +11,7 @@ import { errorMessage } from "@/lib/utils";
 import { useTheme, type ThemePref } from "@/lib/theme";
 import type { Company } from "@/lib/types";
 import { Button, Card, Field, FullScreenLoader, Input, Segmented, SectionTitle, Sheet, Textarea, useConfirm } from "@/components/ui";
-import { Page, PageHeader, PhotoPicker } from "@/components/shell";
+import { Page, PageHeader, PhotoPicker, PoweredBy } from "@/components/shell";
 import { notifySaved } from "./common";
 
 export default function Settings() {
@@ -114,6 +114,8 @@ export default function Settings() {
         <Button variant="danger" className="w-full" onClick={onSignOut}>
           <LogOut className="size-4" /> {t("sign_out")}
         </Button>
+
+        <PoweredBy className="pt-2" />
       </Page>
 
       <AdminSheet open={adminOpen} onClose={() => setAdminOpen(false)} />

@@ -14,7 +14,7 @@ import { Avatar, Button, Card, FullScreenLoader, Row, SectionTitle } from "@/com
 import { AttendanceCalendar, CalendarLegend, LiveAmount, MonthSwitcher, StatusTiles } from "@/components/attendance";
 import { PayStatusBadge, SalaryBreakdown } from "@/components/salary";
 import { SalarySlip } from "@/components/documents";
-import { LanguageSwitcher } from "@/components/shell";
+import { LanguageSwitcher, PoweredBy } from "@/components/shell";
 
 export default function DriverHome() {
   const { t, lang } = useI18n();
@@ -163,6 +163,7 @@ export default function DriverHome() {
             <Row label={t("advance_balance")} value={inr(calc.advanceClosing)} strong />
           </Card>
         )}
+        <PoweredBy className="pb-2 pt-4" />
       </div>
       {holder}
     </div>

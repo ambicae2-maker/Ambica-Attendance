@@ -220,3 +220,21 @@ export function PageHeader({ title, sub, back, actions }: { title: ReactNode; su
 export function Page({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn("mx-auto max-w-5xl space-y-5 px-4 py-5 md:px-8", className)}>{children}</div>;
 }
+
+/** Credit line shown at the bottom of the app and on printed documents. */
+export function PoweredBy({ dark, className }: { dark?: boolean; className?: string }) {
+  const { t } = useI18n();
+  return (
+    <p className={cn("text-center text-xs", dark ? "text-white/45" : "text-muted-foreground", className)}>
+      {t("built_by")}{" "}
+      <a
+        href="https://kavionsolutions.in/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn("font-semibold underline-offset-2 hover:underline", dark ? "text-white/70" : "text-brand")}
+      >
+        Kavion Solutions
+      </a>
+    </p>
+  );
+}

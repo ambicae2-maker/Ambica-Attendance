@@ -9,7 +9,7 @@ import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { loadPortal, NotFoundError } from "@/lib/store";
 import { errorMessage, normalizeCode } from "@/lib/utils";
 import { Button, Field, Input, PasswordInput } from "@/components/ui";
-import { LanguageSwitcher } from "@/components/shell";
+import { LanguageSwitcher, PoweredBy } from "@/components/shell";
 
 type AdminMode = "signin" | "forgot";
 
@@ -38,6 +38,7 @@ function AuthLayout({ title, sub, badge, children }: { title: string; sub: strin
             <div className="mb-4 rounded-xl border border-danger/30 bg-danger/10 p-3 text-sm text-danger">{t("setup_needed")}</div>
           )}
           {children}
+          <PoweredBy className="mt-10" />
         </div>
       </div>
     </div>

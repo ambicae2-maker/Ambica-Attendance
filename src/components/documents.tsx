@@ -162,6 +162,7 @@ function Footer() {
     <div className="mt-auto flex items-end justify-between px-10 pb-8 pt-10 text-[11px] text-muted-foreground">
       <div>
         Generated on {fmtDate(todayISO())}. This is a computer-generated document.
+        <div className="mt-1">Designed &amp; developed by Kavion Solutions · kavionsolutions.in</div>
       </div>
       <div className="text-center">
         <div className="mb-1 h-10 w-44 border-b border-foreground/40" />

@@ -11,6 +11,7 @@ type Dict = Record<string, string>;
 
 const en: Dict = {
   app_name: "Ambica Attendance",
+  built_by: "Designed & developed by",
   install_title: "Install the app", install_now: "Install", not_now: "Not now",
   install_text: "Add it to your home screen — opens like an app and works without internet.",
   install_ios: "Tap Share, then “Add to Home Screen”.",
@@ -130,6 +131,7 @@ const en: Dict = {
 
 const hi: Dict = {
   app_name: "अंबिका हाज़िरी",
+  built_by: "डिज़ाइन और डेवलपमेंट",
   install_title: "ऐप इंस्टॉल करें", install_now: "इंस्टॉल", not_now: "अभी नहीं",
   install_text: "होम स्क्रीन पर लगाएँ — ऐप की तरह खुलेगा और बिना इंटरनेट भी चलेगा।",
   install_ios: "Share दबाएँ, फिर “Add to Home Screen” चुनें।",
@@ -249,6 +251,7 @@ const hi: Dict = {
 
 const gu: Dict = {
   app_name: "અંબિકા હાજરી",
+  built_by: "ડિઝાઇન અને ડેવલપમેન્ટ",
   install_title: "એપ ઇન્સ્ટોલ કરો", install_now: "ઇન્સ્ટોલ", not_now: "અત્યારે નહીં",
   install_text: "હોમ સ્ક્રીન પર ઉમેરો — એપની જેમ ખૂલશે અને ઇન્ટરનેટ વગર પણ ચાલશે.",
   install_ios: "Share દબાવો, પછી “Add to Home Screen” પસંદ કરો.",
