@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { ChevronRight, History, LogOut, Monitor, Moon, Plus, Sun, Trash2 } from "lucide-react";
+import { ChevronRight, History, LogOut, Mail, Monitor, Moon, Plus, ShieldCheck, Sun, Trash2 } from "lucide-react";
 import { LANGS, useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { addAdmin, removeAdmin, saveCompany, useDataset } from "@/lib/data";
-import { useSyncState } from "@/lib/store";
+import { DATASET_KEY, useSyncState } from "@/lib/store";
+import { useQueryClient } from "@tanstack/react-query";
 import { errorMessage } from "@/lib/utils";
 import { useTheme, type ThemePref } from "@/lib/theme";
 import type { Company } from "@/lib/types";
@@ -24,6 +25,7 @@ export default function Settings() {
 
   if (isPending || !ds) return <FullScreenLoader />;
   const me = session?.user.email?.toLowerCase();
+  const isSuper = Boolean(ds.admins.find((a) => a.email === me)?.is_super);
 
   const onSignOut = async () => {
     if (pending > 0 && !(await confirm({ title: t("sign_out"), message: t("pending_changes", { n: pending }), danger: true }))) return;
@@ -37,32 +39,50 @@ export default function Settings() {
         <CompanyCard company={ds.company} />
 
         <Card className="p-5">
-          <SectionTitle action={<Button size="sm" variant="secondary" onClick={() => setAdminOpen(true)}><Plus className="size-4" /> {t("add")}</Button>}>
+          <SectionTitle
+            action={
+              isSuper && (
+                <Button size="sm" variant="secondary" onClick={() => setAdminOpen(true)}>
+                  <Plus className="size-4" /> {t("add")}
+                </Button>
+              )
+            }
+          >
             {t("admins")}
           </SectionTitle>
           <ul className="divide-y">
             {ds.admins.map((a) => (
               <li key={a.email} className="flex items-center gap-3 py-2.5">
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-semibold">{a.name || a.email}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-semibold">{a.name || a.email}</span>
+                    {a.is_super && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-bold uppercase text-gold-foreground dark:text-gold">
+                        <ShieldCheck className="size-3" /> {t("super_admin")}
+                      </span>
+                    )}
+                  </div>
                   <div className="truncate text-xs text-muted-foreground">{a.email}</div>
                 </div>
                 {a.email === me ? (
                   <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold">{t("you")}</span>
                 ) : (
-                  <button
-                    onClick={async () => {
-                      if (await confirm({ title: t("remove"), message: a.email, danger: true })) notifySaved(t, await removeAdmin(a.email));
-                    }}
-                    className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-danger"
-                    aria-label={t("remove")}
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
+                  isSuper && (
+                    <button
+                      onClick={async () => {
+                        if (await confirm({ title: t("remove"), message: a.email, danger: true })) notifySaved(t, await removeAdmin(a.email));
+                      }}
+                      className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-danger"
+                      aria-label={t("remove")}
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  )
                 )}
               </li>
             ))}
           </ul>
+          <p className="mt-3 text-xs text-muted-foreground">{isSuper ? t("admins_hint_super") : t("admins_hint")}</p>
         </Card>
 
         <Card className="space-y-4 p-5">
@@ -96,7 +116,7 @@ export default function Settings() {
         </Button>
       </Page>
 
-      <AdminSheet open={adminOpen} onClose={() => setAdminOpen(false)} by={me ?? null} />
+      <AdminSheet open={adminOpen} onClose={() => setAdminOpen(false)} />
     </>
   );
 }
@@ -155,31 +175,51 @@ function CompanyCard({ company }: { company: Company }) {
   );
 }
 
-function AdminSheet({ open, onClose, by }: { open: boolean; onClose: () => void; by: string | null }) {
+function AdminSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useI18n();
+  const qc = useQueryClient();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const valid = /^\S+@\S+\.\S+$/.test(email.trim());
+
   const save = async () => {
     if (!valid) return;
+    setBusy(true);
+    setError(null);
     try {
-      await addAdmin(email, name, by);
-      toast.success(t("admin_added"));
+      const { existing } = await addAdmin(email, name, () => qc.invalidateQueries({ queryKey: DATASET_KEY }));
+      toast.success(t(existing ? "admin_invited_existing" : "admin_invited", { email: email.trim().toLowerCase() }));
       setEmail("");
       setName("");
       onClose();
     } catch (e) {
-      toast.error(errorMessage(e));
+      setError(errorMessage(e));
+    } finally {
+      setBusy(false);
     }
   };
+
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()} title={t("add_admin")} footer={<Button className="w-full" size="lg" onClick={save} disabled={!valid}>{t("add")}</Button>}>
+    <Sheet
+      open={open}
+      onOpenChange={(o) => !o && onClose()}
+      title={t("add_admin")}
+      description={t("add_admin_hint")}
+      footer={
+        <Button className="w-full" size="lg" onClick={save} loading={busy} disabled={!valid}>
+          <Mail className="size-4" /> {t("send_invite")}
+        </Button>
+      }
+    >
       <div className="space-y-4">
+        {error && <div className="rounded-xl border border-danger/30 bg-danger/10 p-3 text-sm text-danger">{error}</div>}
         <Field label={t("name")}>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
         <Field label={t("email")}>
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" />
         </Field>
       </div>
     </Sheet>

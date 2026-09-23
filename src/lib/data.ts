@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { commit, DATASET_KEY, driverSlice, loadDataset, loadPortal, NotFoundError } from "./store";
+import { inviteAdmin } from "./adminApi";
 import { uid, newDriverCode } from "./utils";
 import { monthOf } from "./dates";
 import type { Adjustment, Company, Dataset, DayStatus, Driver, MonthCalc, Payment } from "./types";
@@ -219,12 +220,11 @@ export function saveCompany(c: Company, logoDataUrl?: string) {
   );
 }
 
-export function addAdmin(email: string, name: string, by: string | null) {
-  const row = { email: email.trim().toLowerCase(), name: name.trim(), active: true, added_by: by };
-  return commit([{ kind: "upsert", table: "admins", rows: [row] }], (d) => ({
-    ...d,
-    admins: [...without(d.admins, (a) => a.email === row.email), row],
-  }));
+/** Invites a new admin by email (needs internet; only a super admin may do this). */
+export async function addAdmin(email: string, name: string, qcInvalidate?: () => void) {
+  const result = await inviteAdmin(email.trim().toLowerCase(), name.trim());
+  qcInvalidate?.();
+  return result;
 }
 
 export function removeAdmin(email: string) {

@@ -8,10 +8,10 @@ import { useAuth } from "@/lib/auth";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { loadPortal, NotFoundError } from "@/lib/store";
 import { errorMessage, normalizeCode } from "@/lib/utils";
-import { Button, Field, Input } from "@/components/ui";
+import { Button, Field, Input, PasswordInput } from "@/components/ui";
 import { LanguageSwitcher } from "@/components/shell";
 
-type AdminMode = "signin" | "signup" | "forgot";
+type AdminMode = "signin" | "forgot";
 
 /** Shared dark page frame for both sign-in screens. */
 function AuthLayout({ title, sub, badge, children }: { title: string; sub: string; badge: ReactNode; children: ReactNode }) {
@@ -162,25 +162,6 @@ function AdminLogin() {
         if (error) throw error;
         toast.success(t("reset_sent"));
         setMode("signin");
-      } else if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({ email: em, password, options: { emailRedirectTo: `${location.origin}/admin` } });
-        if (error) throw error;
-        // Supabase returns a user with no identities when the email is already registered.
-        if (data.user && data.user.identities?.length === 0) {
-          toast(t("have_account"));
-          setMode("signin");
-          return;
-        }
-        if (data.session) {
-          if (await recheckAdmin()) nav("/admin", { replace: true });
-          else {
-            setError(t("not_admin"));
-            await signOut();
-          }
-        } else {
-          toast.success(t("check_email"));
-          setMode("signin");
-        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: em, password });
         if (error) throw error;
@@ -207,11 +188,10 @@ function AdminLogin() {
       <Field label={t("email")}>
         <Input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
       </Field>
-      {mode !== "forgot" && (
+      {mode === "signin" && (
         <Field label={t("password")}>
-          <Input
-            type="password"
-            autoComplete={mode === "signup" ? "new-password" : "current-password"}
+          <PasswordInput
+            autoComplete="current-password"
             required
             minLength={6}
             value={password}
@@ -219,22 +199,18 @@ function AdminLogin() {
           />
         </Field>
       )}
+      {mode === "forgot" && <p className="text-sm text-muted-foreground">{t("forgot_hint")}</p>}
       <Button type="submit" size="lg" className="w-full" loading={busy}>
-        {mode === "signin" ? t("sign_in") : mode === "signup" ? t("create_account") : t("continue")}
+        {mode === "signin" ? t("sign_in") : t("continue")}
       </Button>
       <div className="flex flex-col items-center gap-2 pt-2 text-sm">
         {mode === "signin" ? (
-          <>
-            <button type="button" className="font-semibold text-brand" onClick={() => setMode("signup")}>
-              {t("first_time")}
-            </button>
-            <button type="button" className="text-muted-foreground" onClick={() => setMode("forgot")}>
-              {t("forgot_password")}
-            </button>
-          </>
+          <button type="button" className="text-muted-foreground" onClick={() => setMode("forgot")}>
+            {t("forgot_password")}
+          </button>
         ) : (
           <button type="button" className="font-semibold text-brand" onClick={() => setMode("signin")}>
-            {t("have_account")}
+            {t("back")}
           </button>
         )}
       </div>
@@ -261,7 +237,7 @@ export function ResetPassword() {
       <form onSubmit={submit} className="w-full max-w-sm space-y-4">
         <h1 className="font-display text-2xl font-bold">{t("set_password")}</h1>
         <Field label={t("new_password")}>
-          <Input type="password" autoComplete="new-password" minLength={6} required value={password} onChange={(e) => setPassword(e.target.value)} />
+          <PasswordInput autoComplete="new-password" minLength={6} required value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
         <Button type="submit" className="w-full" loading={busy}>
           {t("save")}

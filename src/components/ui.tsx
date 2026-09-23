@@ -10,7 +10,7 @@ import {
   type TextareaHTMLAttributes,
 } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Loader2, X } from "lucide-react";
+import { Eye, EyeOff, Loader2, X } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import type { DayStatus } from "@/lib/types";
@@ -91,6 +91,26 @@ export function Field({ label, hint, error, optional, children, className }: {
       {children}
       {error ? <span className="block text-xs text-danger">{error}</span> : hint && <span className="block text-xs text-muted-foreground">{hint}</span>}
     </label>
+  );
+}
+
+/** Password box with an eye button to show or hide what you typed. */
+export function PasswordInput({ className, ...p }: Omit<InputHTMLAttributes<HTMLInputElement>, "type">) {
+  const { t } = useI18n();
+  const [show, setShow] = useState(false);
+  return (
+    <div className="relative">
+      <Input type={show ? "text" : "password"} className={cn("pr-12", className)} {...p} />
+      <button
+        type="button"
+        onClick={() => setShow((s) => !s)}
+        aria-label={show ? t("hide_password") : t("show_password")}
+        title={show ? t("hide_password") : t("show_password")}
+        className="absolute inset-y-0 right-0 grid w-12 place-items-center text-muted-foreground transition hover:text-foreground"
+      >
+        {show ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+      </button>
+    </div>
   );
 }
 
@@ -215,7 +235,6 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
         <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-[2px] data-[state=open]:animate-[fade-in_150ms]" />
         <Dialog.Content
           className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-2xl bg-card shadow-premium outline-none data-[state=open]:animate-[sheet-up_220ms_cubic-bezier(0.22,1,0.36,1)] sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl"
-          aria-describedby={description ? undefined : undefined}
         >
           <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-border sm:hidden" />
           <div className="flex items-start justify-between gap-3 px-5 pt-4">

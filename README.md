@@ -36,6 +36,12 @@ npm run dev
 Open http://localhost:5173, go to **Admin → "First time? Create your password"**, use the email from step 1,
 confirm the email Supabase sends you, then sign in.
 
+## Admins and email
+
+Admins cannot sign themselves up. A **super admin** invites them by email from **Settings → Admins**,
+and they set their own password from the emailed link. One-time setup (Gmail SMTP, super-admin SQL,
+Vercel server key) is in [SETUP-ADMINS-AND-EMAIL.md](SETUP-ADMINS-AND-EMAIL.md).
+
 ## Everyday use
 - **Add driver**: photo (camera or gallery), name, truck, salary. A random Driver ID such as `AMB-K7Q2X9` is created.
   Give this ID to the driver so they can log in on the **Driver** tab.

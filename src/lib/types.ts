@@ -83,6 +83,7 @@ export interface Admin {
   email: string;
   name: string;
   active: boolean;
+  is_super?: boolean;
   added_by?: string | null;
   created_at?: string;
 }
