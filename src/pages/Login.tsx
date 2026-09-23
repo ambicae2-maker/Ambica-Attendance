@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -8,24 +8,14 @@ import { useAuth } from "@/lib/auth";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { loadPortal, NotFoundError } from "@/lib/store";
 import { errorMessage, normalizeCode } from "@/lib/utils";
-import { Button, Field, Input, Segmented } from "@/components/ui";
+import { Button, Field, Input } from "@/components/ui";
 import { LanguageSwitcher } from "@/components/shell";
 
-type Tab = "driver" | "admin";
 type AdminMode = "signin" | "signup" | "forgot";
 
-export default function Login() {
+/** Shared dark page frame for both sign-in screens. */
+function AuthLayout({ title, sub, badge, children }: { title: string; sub: string; badge: ReactNode; children: ReactNode }) {
   const { t } = useI18n();
-  const [tab, setTab] = useState<Tab>(() => (localStorage.getItem("last_login_tab") as Tab) || "driver");
-  const pick = (v: Tab) => {
-    setTab(v);
-    try {
-      localStorage.setItem("last_login_tab", v);
-    } catch {
-      /* ignore */
-    }
-  };
-
   return (
     <div className="flex min-h-dvh flex-col bg-ink">
       <div className="relative overflow-hidden px-6 pb-24 pt-[max(2rem,env(safe-area-inset-top))] text-ink-foreground">
@@ -36,30 +26,56 @@ export default function Login() {
           <LanguageSwitcher dark />
         </div>
         <div className="relative mx-auto mt-10 max-w-md">
-          <div className="text-xs font-bold uppercase tracking-[0.25em] text-gold">Ambica Enterprise</div>
-          <h1 className="mt-2 font-display text-4xl font-bold">{t("login_title")}</h1>
-          <p className="mt-1 text-white/70">{t("login_sub")}</p>
+          {badge}
+          <h1 className="mt-3 font-display text-4xl font-bold">{title}</h1>
+          <p className="mt-1 text-white/70">{sub}</p>
         </div>
       </div>
 
-      <div className="relative z-10 -mt-16 flex-1 rounded-t-[28px] bg-background px-5 pb-10 pt-6">
+      <div className="relative z-10 -mt-16 flex-1 rounded-t-[28px] bg-background px-5 pb-10 pt-7">
         <div className="mx-auto max-w-md">
           {!supabaseConfigured && (
             <div className="mb-4 rounded-xl border border-danger/30 bg-danger/10 p-3 text-sm text-danger">{t("setup_needed")}</div>
           )}
-          <Segmented<Tab>
-            value={tab}
-            onChange={pick}
-            className="mb-6"
-            options={[
-              { value: "driver", label: <span className="inline-flex items-center gap-2"><Truck className="size-4" />{t("tab_driver")}</span>, activeClass: "bg-ink text-ink-foreground shadow-sm" },
-              { value: "admin", label: <span className="inline-flex items-center gap-2"><ShieldCheck className="size-4" />{t("tab_admin")}</span>, activeClass: "bg-brand text-brand-foreground shadow-sm" },
-            ]}
-          />
-          {tab === "driver" ? <DriverLogin /> : <AdminLogin />}
+          {children}
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Login() {
+  const { t } = useI18n();
+  return (
+    <AuthLayout
+      title={t("login_title")}
+      sub={t("admin_sign_in_sub")}
+      badge={
+        <span className="inline-flex items-center gap-2 rounded-full bg-brand px-3 py-1 text-xs font-bold uppercase tracking-wider text-brand-foreground">
+          <ShieldCheck className="size-3.5" /> {t("tab_admin")}
+        </span>
+      }
+    >
+      <AdminLogin />
+    </AuthLayout>
+  );
+}
+
+/** Drivers sign in on their own page: /driver */
+export function DriverLoginPage() {
+  const { t } = useI18n();
+  return (
+    <AuthLayout
+      title={t("login_title")}
+      sub={t("driver_sign_in_sub")}
+      badge={
+        <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-gold">
+          <Truck className="size-3.5" /> {t("tab_driver")}
+        </span>
+      }
+    >
+      <DriverLogin />
+    </AuthLayout>
   );
 }
 

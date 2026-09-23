@@ -31,7 +31,7 @@ export default function DriverHome() {
     if (idGone) void signOut();
   }, [idGone, signOut]);
 
-  if (!driverCode) return <Navigate to="/login" replace />;
+  if (!driverCode) return <Navigate to="/driver" replace />;
   if (idGone) return <FullScreenLoader />;
   if (q.isPending) return <FullScreenLoader />;
   if (!q.data) {

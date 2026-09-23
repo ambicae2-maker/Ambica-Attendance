@@ -3,7 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom
 import { useAuth } from "@/lib/auth";
 import { Button, FullScreenLoader } from "@/components/ui";
 import { AdminShell } from "@/components/shell";
-import Login, { ResetPassword } from "@/pages/Login";
+import Login, { DriverLoginPage, ResetPassword } from "@/pages/Login";
 
 /**
  * Lazy-load a screen. If its file can't be fetched (new version deployed, or the dev
@@ -95,6 +95,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<GuestOnly><Login /></GuestOnly>} />
+          <Route path="/driver" element={<GuestOnly><DriverLoginPage /></GuestOnly>} />
           <Route path="/reset" element={<ResetPassword />} />
           <Route path="/me" element={<DriverHome />} />
           <Route path="/admin" element={<AdminOnly />}>

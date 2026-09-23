@@ -25,6 +25,8 @@ const en: Dict = {
   status_upcoming: "Upcoming", not_employed: "Not employed",
 
   login_title: "Welcome", login_sub: "Sign in to continue",
+  admin_sign_in_sub: "Sign in to manage drivers, attendance and salary.",
+  driver_sign_in_sub: "Check your attendance and salary.",
   tab_driver: "Driver", tab_admin: "Admin",
   driver_id: "Driver ID", driver_id_hint: "Enter the ID your admin gave you",
   continue: "Continue", id_not_found: "No driver found with this ID",
@@ -127,6 +129,8 @@ const hi: Dict = {
   status_upcoming: "आने वाला", not_employed: "नौकरी में नहीं",
 
   login_title: "स्वागत है", login_sub: "आगे बढ़ने के लिए लॉग इन करें",
+  admin_sign_in_sub: "ड्राइवर, हाज़िरी और सैलरी संभालने के लिए लॉग इन करें।",
+  driver_sign_in_sub: "अपनी हाज़िरी और सैलरी देखें।",
   tab_driver: "ड्राइवर", tab_admin: "एडमिन",
   driver_id: "ड्राइवर ID", driver_id_hint: "एडमिन द्वारा दी गई ID डालें",
   continue: "आगे बढ़ें", id_not_found: "इस ID से कोई ड्राइवर नहीं मिला",
@@ -229,6 +233,8 @@ const gu: Dict = {
   status_upcoming: "આવનાર", not_employed: "નોકરીમાં નથી",
 
   login_title: "સ્વાગત છે", login_sub: "આગળ વધવા લૉગ ઇન કરો",
+  admin_sign_in_sub: "ડ્રાઇવર, હાજરી અને પગાર સંભાળવા લૉગ ઇન કરો.",
+  driver_sign_in_sub: "તમારી હાજરી અને પગાર જુઓ.",
   tab_driver: "ડ્રાઇવર", tab_admin: "એડમિન",
   driver_id: "ડ્રાઇવર ID", driver_id_hint: "એડમિને આપેલી ID લખો",
   continue: "આગળ વધો", id_not_found: "આ ID થી કોઈ ડ્રાઇવર મળ્યો નથી",
