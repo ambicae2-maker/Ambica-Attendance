@@ -11,6 +11,9 @@ type Dict = Record<string, string>;
 
 const en: Dict = {
   app_name: "Ambica Attendance",
+  install_title: "Install the app", install_now: "Install", not_now: "Not now",
+  install_text: "Add it to your home screen — opens like an app and works without internet.",
+  install_ios: "Tap Share, then “Add to Home Screen”.",
   save: "Save", cancel: "Cancel", delete: "Delete", edit: "Edit", add: "Add", close: "Close", back: "Back",
   search: "Search", loading: "Loading…", retry: "Try again", confirm: "Confirm", optional: "optional",
   share: "Share", download: "Download", copy: "Copy", copied: "Copied", sign_out: "Sign out",
@@ -64,6 +67,11 @@ const en: Dict = {
   salary_required: "Enter a monthly salary", id_will_be: "Login ID will be",
 
   driver_id_label: "Driver ID", regenerate_id: "Generate new ID",
+  share_link: "Send link", link_copied: "Link copied", reset_link: "Reset link",
+  reset_link_confirm: "The old link will stop working. The driver will need the new one.",
+  link_reset: "New link created",
+  share_message: "{name}, here is your attendance and salary page: {url}",
+  opening: "Opening your page…", link_invalid: "This link is not valid any more. Ask your admin for a new one.",
   regenerate_confirm: "The old ID will stop working immediately. Continue?", id_changed: "New ID: {code}",
   call: "Call", deactivate: "Mark as left", deactivate_confirm: "Mark {name} as left today? Salary stops after today.",
   reactivate: "Reactivate", left_on: "Left on {date}",
@@ -121,6 +129,9 @@ const en: Dict = {
 
 const hi: Dict = {
   app_name: "अंबिका हाज़िरी",
+  install_title: "ऐप इंस्टॉल करें", install_now: "इंस्टॉल", not_now: "अभी नहीं",
+  install_text: "होम स्क्रीन पर लगाएँ — ऐप की तरह खुलेगा और बिना इंटरनेट भी चलेगा।",
+  install_ios: "Share दबाएँ, फिर “Add to Home Screen” चुनें।",
   save: "सेव करें", cancel: "रद्द करें", delete: "हटाएँ", edit: "बदलें", add: "जोड़ें", close: "बंद करें", back: "वापस",
   search: "खोजें", loading: "लोड हो रहा है…", retry: "फिर से कोशिश करें", confirm: "पक्का करें", optional: "ज़रूरी नहीं",
   share: "शेयर करें", download: "डाउनलोड", copy: "कॉपी", copied: "कॉपी हो गया", sign_out: "लॉग आउट",
@@ -174,6 +185,11 @@ const hi: Dict = {
   salary_required: "मासिक सैलरी डालें", id_will_be: "लॉगिन ID होगी",
 
   driver_id_label: "ड्राइवर ID", regenerate_id: "नई ID बनाएँ",
+  share_link: "लिंक भेजें", link_copied: "लिंक कॉपी हो गया", reset_link: "लिंक बदलें",
+  reset_link_confirm: "पुराना लिंक बंद हो जाएगा। ड्राइवर को नया लिंक भेजना होगा।",
+  link_reset: "नया लिंक बन गया",
+  share_message: "{name}, यह आपकी हाज़िरी और सैलरी का पेज है: {url}",
+  opening: "आपका पेज खुल रहा है…", link_invalid: "यह लिंक अब काम नहीं करता। एडमिन से नया लिंक माँगें।",
   regenerate_confirm: "पुरानी ID तुरंत बंद हो जाएगी। आगे बढ़ें?", id_changed: "नई ID: {code}",
   call: "कॉल", deactivate: "नौकरी छोड़ी", deactivate_confirm: "{name} को आज से छोड़ा हुआ मानें? आज के बाद सैलरी नहीं जुड़ेगी।",
   reactivate: "फिर से चालू करें", left_on: "{date} को छोड़ा",
@@ -231,6 +247,9 @@ const hi: Dict = {
 
 const gu: Dict = {
   app_name: "અંબિકા હાજરી",
+  install_title: "એપ ઇન્સ્ટોલ કરો", install_now: "ઇન્સ્ટોલ", not_now: "અત્યારે નહીં",
+  install_text: "હોમ સ્ક્રીન પર ઉમેરો — એપની જેમ ખૂલશે અને ઇન્ટરનેટ વગર પણ ચાલશે.",
+  install_ios: "Share દબાવો, પછી “Add to Home Screen” પસંદ કરો.",
   save: "સેવ કરો", cancel: "રદ કરો", delete: "કાઢી નાખો", edit: "બદલો", add: "ઉમેરો", close: "બંધ કરો", back: "પાછા",
   search: "શોધો", loading: "લોડ થાય છે…", retry: "ફરી પ્રયાસ કરો", confirm: "ખાતરી કરો", optional: "જરૂરી નથી",
   share: "શેર કરો", download: "ડાઉનલોડ", copy: "કૉપિ", copied: "કૉપિ થયું", sign_out: "લૉગ આઉટ",
@@ -284,6 +303,11 @@ const gu: Dict = {
   salary_required: "માસિક પગાર લખો", id_will_be: "લૉગિન ID રહેશે",
 
   driver_id_label: "ડ્રાઇવર ID", regenerate_id: "નવી ID બનાવો",
+  share_link: "લિંક મોકલો", link_copied: "લિંક કૉપિ થઈ", reset_link: "લિંક બદલો",
+  reset_link_confirm: "જૂની લિંક બંધ થઈ જશે. ડ્રાઇવરને નવી લિંક મોકલવી પડશે.",
+  link_reset: "નવી લિંક બની",
+  share_message: "{name}, આ તમારી હાજરી અને પગારનું પેજ છે: {url}",
+  opening: "તમારું પેજ ખૂલે છે…", link_invalid: "આ લિંક હવે કામ કરતી નથી. એડમિન પાસે નવી લિંક માંગો.",
   regenerate_confirm: "જૂની ID તરત બંધ થઈ જશે. આગળ વધવું છે?", id_changed: "નવી ID: {code}",
   call: "કૉલ", deactivate: "નોકરી છોડી", deactivate_confirm: "{name} ને આજથી છોડી ગયેલા ગણવા? આજ પછી પગાર નહીં ઉમેરાય.",
   reactivate: "ફરી ચાલુ કરો", left_on: "{date} એ છોડ્યું",

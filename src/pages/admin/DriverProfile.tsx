@@ -2,13 +2,13 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  CalendarDays, Copy, FileText, History, Lock, Pencil, Phone, Plus, RefreshCw, Share2, Trash2, Truck, Unlock, UserCheck, UserX, Wallet,
+  CalendarDays, Copy, FileText, History, Link2, Lock, Pencil, Phone, Plus, RefreshCw, Share2, Trash2, Truck, Unlock, UserCheck, UserX, Wallet,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import {
-  addAdjustment, addPayment, changeSalary, deleteSalary, lockMonth, regenerateCode, removeAdjustment, removePayment, setAttendance,
-  setDriverActive, useDataset, useDriverData,
+  addAdjustment, addPayment, changeSalary, deleteSalary, lockMonth, regenerateCode, removeAdjustment, removePayment, resetShareLink,
+  setAttendance, setDriverActive, useDataset, useDriverData,
 } from "@/lib/data";
 import { buildLedger, STATUS_ORDER } from "@/lib/payroll";
 import { currentMonth, dayDate, fmtDate, fmtMonth, monthOf, todayISO } from "@/lib/dates";
@@ -74,6 +74,33 @@ function Profile({ data }: { data: DriverData }) {
     }
   };
 
+  const shareUrl = `${location.origin}/d/${driver.share_token}`;
+
+  /** Send the driver their private link (WhatsApp etc.), or copy it. */
+  const shareWithDriver = async () => {
+    const text = t("share_message", { name: driver.name, url: shareUrl });
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: t("share_link"), text });
+        return;
+      } catch (e) {
+        if ((e as Error).name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(t("link_copied"));
+    } catch {
+      toast.error(shareUrl);
+    }
+  };
+
+  const onResetLink = async () => {
+    if (!(await confirm({ title: t("reset_link"), message: t("reset_link_confirm"), danger: true }))) return;
+    await resetShareLink(driver.id);
+    toast.success(t("link_reset"));
+  };
+
   const onRegenerate = async () => {
     if (!(await confirm({ title: t("regenerate_id"), message: t("regenerate_confirm"), danger: true }))) return;
     const code = await regenerateCode(driver.id);
@@ -135,6 +162,12 @@ function Profile({ data }: { data: DriverData }) {
                 <Phone className="size-4" /> {t("call")}
               </a>
             )}
+            <button onClick={shareWithDriver} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-gold px-3 text-sm font-bold text-gold-foreground">
+              <Share2 className="size-4" /> {t("share_link")}
+            </button>
+            <button onClick={onResetLink} className="grid size-9 place-items-center rounded-lg bg-white/10 hover:bg-white/15" title={t("reset_link")} aria-label={t("reset_link")}>
+              <Link2 className="size-4" />
+            </button>
             <button onClick={onToggleActive} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-white/70 hover:bg-white/10">
               {driver.active ? <><UserX className="size-4" /> {t("deactivate")}</> : <><UserCheck className="size-4" /> {t("reactivate")}</>}
             </button>

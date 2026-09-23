@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { commit, DATASET_KEY, driverSlice, loadDataset, loadPortal, NotFoundError } from "./store";
 import { inviteAdmin } from "./adminApi";
-import { uid, newDriverCode } from "./utils";
+import { uid, newDriverCode, newShareToken } from "./utils";
 import { monthOf } from "./dates";
 import type { Adjustment, Company, Dataset, DayStatus, Driver, MonthCalc, Payment } from "./types";
 
@@ -38,7 +38,7 @@ function driverRow(d: Driver) {
 }
 
 // ── Drivers ─────────────────────────────────────────────────
-export interface DriverInput extends Omit<Driver, "id" | "login_code" | "active" | "left_on" | "photo_url"> {
+export interface DriverInput extends Omit<Driver, "id" | "login_code" | "share_token" | "active" | "left_on" | "photo_url"> {
   photo: { dataUrl: string } | { url: string | null };
 }
 
@@ -48,6 +48,7 @@ export async function createDriver(input: DriverInput, monthlySalary: number) {
     ...fields,
     id: uid(),
     login_code: newDriverCode(),
+    share_token: newShareToken(),
     active: true,
     left_on: null,
     photo_url: null,
@@ -95,6 +96,16 @@ export async function regenerateCode(driverId: string) {
     drivers: d.drivers.map((x) => (x.id === driverId ? { ...x, login_code: code } : x)),
   }));
   return code;
+}
+
+/** Makes the old share link stop working and creates a new one. */
+export async function resetShareLink(driverId: string) {
+  const share_token = newShareToken();
+  await commit([{ kind: "update", table: "drivers", match: { id: driverId }, values: { share_token } }], (d) => ({
+    ...d,
+    drivers: d.drivers.map((x) => (x.id === driverId ? { ...x, share_token } : x)),
+  }));
+  return share_token;
 }
 
 export function setDriverActive(driverId: string, active: boolean, leftOn: string | null) {

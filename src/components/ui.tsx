@@ -233,25 +233,33 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-[2px] data-[state=open]:animate-[fade-in_150ms]" />
-        <Dialog.Content
-          className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-2xl bg-card shadow-premium outline-none data-[state=open]:animate-[sheet-up_220ms_cubic-bezier(0.22,1,0.36,1)] sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl"
-        >
-          <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-border sm:hidden" />
-          <div className="flex items-start justify-between gap-3 px-5 pt-4">
-            <div>
-              <Dialog.Title className="font-display text-xl font-bold">{title}</Dialog.Title>
+        <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-3xl bg-card shadow-premium outline-none data-[state=open]:animate-[sheet-up_220ms_cubic-bezier(0.22,1,0.36,1)] sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-[calc(100%-2rem)] sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl">
+          {/* grab bar (phones) */}
+          <div className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-border sm:hidden" />
+
+          <div className="flex items-start justify-between gap-4 px-6 pt-5">
+            <div className="min-w-0">
+              <Dialog.Title className="font-display text-xl font-bold leading-snug">{title}</Dialog.Title>
               {description ? (
-                <Dialog.Description className="mt-1 text-sm text-muted-foreground">{description}</Dialog.Description>
+                <Dialog.Description className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</Dialog.Description>
               ) : (
                 <Dialog.Description className="sr-only">{typeof title === "string" ? title : ""}</Dialog.Description>
               )}
             </div>
-            <Dialog.Close className="-mr-2 rounded-lg p-2 text-muted-foreground hover:bg-muted" aria-label={t("close")}>
+            <Dialog.Close
+              className="-mr-1.5 -mt-1 grid size-9 shrink-0 place-items-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              aria-label={t("close")}
+            >
               <X className="size-5" />
             </Dialog.Close>
           </div>
-          <div className="flex-1 overflow-y-auto px-5 pb-4 pt-4">{children}</div>
-          {footer && <div className="pb-safe border-t px-5 py-3">{footer}</div>}
+
+          {children && <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>}
+
+          {footer && (
+            <div className={cn("shrink-0 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4", children && "border-t")}>{footer}</div>
+          )}
+          {!footer && <div className="h-[max(1.5rem,env(safe-area-inset-bottom))] shrink-0" />}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
@@ -285,11 +293,11 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
         title={state?.title ?? ""}
         description={state?.message}
         footer={
-          <div className="flex gap-2">
-            <Button variant="secondary" className="flex-1" onClick={() => done(false)}>
+          <div className="flex gap-3">
+            <Button variant="secondary" size="lg" className="flex-1" onClick={() => done(false)}>
               {t("cancel")}
             </Button>
-            <Button variant={state?.danger ? "primary" : "ink"} className="flex-1" onClick={() => done(true)}>
+            <Button variant={state?.danger ? "primary" : "ink"} size="lg" className="flex-1" onClick={() => done(true)}>
               {state?.confirmLabel ?? t("confirm")}
             </Button>
           </div>

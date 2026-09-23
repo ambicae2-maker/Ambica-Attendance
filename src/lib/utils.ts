@@ -18,6 +18,12 @@ export function newDriverCode() {
   return "AMB-" + Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join("");
 }
 
+/** Long, unguessable token for a driver's private link. */
+export function newShareToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export const normalizeCode = (s: string) => {
   const c = s.trim().toUpperCase().replace(/\s+/g, "");
   return c.startsWith("AMB-") ? c : c.startsWith("AMB") ? "AMB-" + c.slice(3) : "AMB-" + c;

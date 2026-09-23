@@ -51,7 +51,7 @@ export default function Settings() {
             {t("admins")}
           </SectionTitle>
           <ul className="divide-y">
-            {ds.admins.map((a) => (
+            {ds.admins.filter((a) => isSuper || a.email === me).map((a) => (
               <li key={a.email} className="flex items-center gap-3 py-2.5">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">

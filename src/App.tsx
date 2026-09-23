@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom
 import { useAuth } from "@/lib/auth";
 import { Button, FullScreenLoader } from "@/components/ui";
 import { AdminShell } from "@/components/shell";
+import { InstallPrompt } from "@/components/install";
 import Login, { DriverLoginPage, ResetPassword } from "@/pages/Login";
 
 /**
@@ -34,6 +35,7 @@ const Holidays = lazyPage(() => import("@/pages/admin/Holidays"));
 const Settings = lazyPage(() => import("@/pages/admin/Settings"));
 const Activity = lazyPage(() => import("@/pages/admin/Activity"));
 const DriverHome = lazyPage(() => import("@/pages/driver/DriverHome"));
+const OpenLink = lazyPage(() => import("@/pages/driver/OpenLink"));
 
 /** Shows a friendly "reload" screen instead of a blank page if something crashes. */
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -98,6 +100,7 @@ export default function App() {
           <Route path="/driver" element={<GuestOnly><DriverLoginPage /></GuestOnly>} />
           <Route path="/reset" element={<ResetPassword />} />
           <Route path="/me" element={<DriverHome />} />
+          <Route path="/d/:token" element={<OpenLink />} />
           <Route path="/admin" element={<AdminOnly />}>
             <Route index element={<Dashboard />} />
             <Route path="today" element={<Today />} />
@@ -111,6 +114,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
+      <InstallPrompt />
       </ErrorBoundary>
     </BrowserRouter>
   );

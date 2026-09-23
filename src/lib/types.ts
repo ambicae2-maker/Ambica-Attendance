@@ -5,6 +5,7 @@ export type PaymentMode = "cash" | "upi" | "bank" | "cheque";
 export interface Driver {
   id: string;
   login_code: string;
+  share_token: string;
   name: string;
   phone: string | null;
   email: string | null;

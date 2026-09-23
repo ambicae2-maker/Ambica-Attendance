@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setDriverCode = (code: string | null) => {
-    const c = code ? normalizeCode(code) : null;
+    const c = code ? (code.length > 12 ? code.trim().toLowerCase() : normalizeCode(code)) : null;
     writeStore(DRIVER_KEY, c);
     setDriverCodeState(c);
   };
