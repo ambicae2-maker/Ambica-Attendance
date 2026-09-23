@@ -12,7 +12,7 @@ export async function inviteAdmin(email: string, name: string): Promise<{ existi
   const res = await fetch("/api/invite-admin", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ email, name, redirectTo: `${location.origin}/reset` }),
+    body: JSON.stringify({ email, name }),
   });
 
   const text = await res.text();

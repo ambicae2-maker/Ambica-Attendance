@@ -10,8 +10,9 @@ import {
   addAdjustment, addPayment, changeSalary, deleteSalary, lockMonth, regenerateCode, removeAdjustment, removePayment, resetShareLink,
   setAttendance, setDriverActive, useDataset, useDriverData,
 } from "@/lib/data";
-import { buildLedger, STATUS_ORDER } from "@/lib/payroll";
+import { buildLedger, salaryOn, STATUS_ORDER } from "@/lib/payroll";
 import { currentMonth, dayDate, fmtDate, fmtMonth, monthOf, todayISO } from "@/lib/dates";
+import { useToday } from "@/lib/today";
 import { usePdfExport } from "@/lib/pdf";
 import { cn, errorMessage, inr } from "@/lib/utils";
 import type { AdjustmentKind, DayInfo, DayStatus, DriverData, MonthCalc, PaymentMode } from "@/lib/types";
@@ -53,7 +54,8 @@ function Profile({ data }: { data: DriverData }) {
   const [sheet, setSheet] = useState<null | "extra" | "payment" | "salary">(null);
   const { exportPdf, busy: pdfBusy, holder } = usePdfExport();
 
-  const ledger = useMemo(() => buildLedger(data), [data]);
+  const today = useToday();
+  const ledger = useMemo(() => buildLedger(data, undefined, today), [data, today]);
   const calc = ledger.find((m) => m.month === month) ?? ledger[ledger.length - 1];
   const trend = ledger.slice(-6);
   const locked = calc.locked;
@@ -62,6 +64,8 @@ function Profile({ data }: { data: DriverData }) {
   const monthAdjustments = data.adjustments.filter((a) => a.month === calc.month).sort((a, b) => a.date.localeCompare(b.date));
   const monthPayments = data.payments.filter((p) => p.month === calc.month).sort((a, b) => a.paid_on.localeCompare(b.paid_on));
   const salaries = [...data.salary_history].sort((a, b) => b.effective_from.localeCompare(a.effective_from));
+  const currentSalary = salaryOn(data.salary_history, today);
+  const currentSalaryFrom = salaries.find((s) => s.effective_from <= today && Number(s.monthly_salary) === currentSalary)?.effective_from;
 
   const fileBase = `${driver.name.replace(/[^\p{L}\p{N}]+/gu, "-")}-${calc.month.slice(0, 7)}`;
 
@@ -336,13 +340,18 @@ function Profile({ data }: { data: DriverData }) {
                 {t("salary_history")}
               </SectionTitle>
               <ul className="divide-y">
-                {salaries.map((s, i) => (
+                {salaries.map((s) => (
                   <li key={s.id} className="flex items-center gap-3 py-2.5">
                     <div className="min-w-0 flex-1">
                       <div className="font-semibold tabular">{inr(s.monthly_salary)}</div>
                       <div className="text-xs text-muted-foreground">{t("from_date", { date: fmtDate(s.effective_from, lang) })}</div>
                     </div>
-                    {i === 0 && <span className="rounded-full bg-present-soft px-2 py-0.5 text-xs font-semibold text-present-ink">{t("current")}</span>}
+                    {s.effective_from === currentSalaryFrom && (
+                      <span className="rounded-full bg-present-soft px-2 py-0.5 text-xs font-semibold text-present-ink">{t("current")}</span>
+                    )}
+                    {s.effective_from > today && (
+                      <span className="rounded-full bg-half-soft px-2 py-0.5 text-xs font-semibold text-half-ink">{t("upcoming")}</span>
+                    )}
                     {salaries.length > 1 && (
                       <button onClick={async () => notifySaved(t, await deleteSalary(s.id))} className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-danger" aria-label={t("delete")}>
                         <Trash2 className="size-4" />

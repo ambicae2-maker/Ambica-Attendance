@@ -33,8 +33,29 @@ In Supabase, open **Authentication → URL Configuration**:
 npm install
 npm run dev
 ```
-Open http://localhost:5173, go to **Admin → "First time? Create your password"**, use the email from step 1,
-confirm the email Supabase sends you, then sign in.
+Open http://localhost:5173. Admins cannot sign themselves up — create the first login in
+Supabase (**Authentication → Users → Add user**, with *Auto Confirm User* on), then sign in.
+
+## Database files (run in this order)
+
+1. `supabase/schema.sql` — tables, security rules, storage
+2. `supabase/02-super-admin.sql` — super-admin role
+3. `supabase/03-admins-privacy.sql` — a normal admin sees only their own admin row
+4. `supabase/04-share-links.sql` — private driver links (`/d/<token>`)
+5. `supabase/05-security.sql` — hardening (confirmed-email check, portal shows no bank details, longer Driver IDs, redacted activity log)
+
+> If you ever re-run `schema.sql`, run **02, 03, 04 and 05 again afterwards** — `schema.sql`
+> re-creates a broad policy that would otherwise let any admin edit the admin list.
+
+## Tests
+
+```bash
+npm test            # salary engine: 106 checks incl. 2000 random months
+npm run test:server # in one terminal (test data, dummy database)
+npm run test:ui     # in another: drives the real screens in Edge (35 checks)
+```
+
+The UI test uses `.env.test`, which points at a dead address, so it can never touch real data.
 
 ## Admins and email
 

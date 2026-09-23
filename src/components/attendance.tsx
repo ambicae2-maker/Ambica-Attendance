@@ -129,7 +129,7 @@ export function StatusTiles({ calc }: { calc: MonthCalc }) {
   return (
     <div className="grid grid-cols-4 gap-2">
       {items.map(({ s, n }) => (
-        <div key={s} className={cn("rounded-xl px-2 py-3 text-center", STATUS_STYLES[s].soft)}>
+        <div key={s} data-testid={"tile-" + s} data-count={n} className={cn("rounded-xl px-2 py-3 text-center", STATUS_STYLES[s].soft)}>
           <div className="font-display text-2xl font-bold tabular">{n}</div>
           <div className="mt-0.5 truncate text-[11px] font-semibold uppercase tracking-wide opacity-80">{t(`status_${s}`)}</div>
         </div>
@@ -186,7 +186,7 @@ export function LiveAmount({ value, className }: { value: number; className?: st
     return () => controls.stop();
   }, [value]);
   return (
-    <span ref={ref} className={cn("tabular", className)}>
+    <span ref={ref} data-testid="live-amount" data-value={value} className={cn("tabular", className)}>
       {inr(0)}
     </span>
   );

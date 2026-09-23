@@ -136,10 +136,19 @@ export function deleteSalary(id: string) {
 
 // ── Attendance ──────────────────────────────────────────────
 /** Present on a normal day (or Holiday on a company holiday) is the default, so no row is stored. */
-export function setAttendance(ds: Dataset, driverIds: string[], date: string, status: DayStatus, note: string | null = null) {
+export function setAttendance(
+  ds: Dataset,
+  driverIds: string[],
+  date: string,
+  status: DayStatus,
+  note: string | null | undefined = undefined,
+) {
   const isCompanyHoliday = ds.holidays.some((h) => h.date === date);
-  const isDefault = status === (isCompanyHoliday ? "holiday" : "present") && !note;
-  const rows = driverIds.map((driver_id) => ({ driver_id, date, status, note }));
+  // undefined = "leave the note as it is" (quick marking from the Today screen)
+  const noteFor = (driver_id: string) =>
+    note === undefined ? (ds.attendance.find((a) => a.driver_id === driver_id && a.date === date)?.note ?? null) : note;
+  const rows = driverIds.map((driver_id) => ({ driver_id, date, status, note: noteFor(driver_id) }));
+  const isDefault = status === (isCompanyHoliday ? "holiday" : "present") && rows.every((r) => !r.note);
   const ops = isDefault
     ? driverIds.map((driver_id) => ({ kind: "delete" as const, table: "attendance", match: { driver_id, date } }))
     : [{ kind: "upsert" as const, table: "attendance", rows, onConflict: "driver_id,date" }];

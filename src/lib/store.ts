@@ -22,12 +22,12 @@ export const DATASET_KEY = ["dataset"] as const;
 const OUTBOX_KEY = "outbox-v1";
 
 export type Op =
-  | { id: string; kind: "upsert"; table: string; rows: Record<string, unknown>[]; onConflict?: string }
-  | { id: string; kind: "update"; table: string; match: Record<string, unknown>; values: Record<string, unknown> }
-  | { id: string; kind: "delete"; table: string; match: Record<string, unknown> }
-  | { id: string; kind: "photo"; target: "driver" | "logo"; driverId?: string; dataUrl: string };
+  | { id: string; group: string; kind: "upsert"; table: string; rows: Record<string, unknown>[]; onConflict?: string }
+  | { id: string; group: string; kind: "update"; table: string; match: Record<string, unknown>; values: Record<string, unknown> }
+  | { id: string; group: string; kind: "delete"; table: string; match: Record<string, unknown> }
+  | { id: string; group: string; kind: "photo"; target: "driver" | "logo"; driverId?: string; dataUrl: string };
 
-type NewOp = Op extends infer O ? (O extends Op ? Omit<O, "id"> : never) : never;
+type NewOp = Op extends infer O ? (O extends Op ? Omit<O, "id" | "group"> : never) : never;
 
 // ── Sync state (observable) ─────────────────────────────────
 interface SyncState {
@@ -123,8 +123,14 @@ async function doFlush() {
         await run(outbox[0]);
       } catch (e) {
         if (isNetworkError(e)) break;
+        // The server said no (e.g. the month is locked). Drop the whole change —
+        // its other parts would fail too or leave half-written data.
         rejected = true;
         toast.error(errorMessage(e));
+        const group = outbox[0].group;
+        outbox = outbox.filter((o) => o.group !== group);
+        await persist();
+        continue;
       }
       outbox.shift();
       await persist();
@@ -132,7 +138,10 @@ async function doFlush() {
   } finally {
     setState({ syncing: false });
   }
-  if (rejected) void qc?.invalidateQueries({ queryKey: DATASET_KEY });
+  // Refresh from the server so a rejected change disappears from the screen.
+  if (rejected) {
+    await qc?.refetchQueries({ queryKey: DATASET_KEY });
+  }
 }
 
 /**
@@ -142,7 +151,8 @@ async function doFlush() {
 export async function commit(ops: NewOp[], optimistic?: (d: Dataset) => Dataset): Promise<boolean> {
   if (optimistic && qc) qc.setQueryData<Dataset>(DATASET_KEY, (d) => (d ? optimistic(d) : d));
   await ready;
-  outbox.push(...ops.map((o) => ({ ...o, id: uid() }) as Op));
+  const group = uid();
+  outbox.push(...ops.map((o) => ({ ...o, id: uid(), group }) as Op));
   await persist();
   await flush();
   return outbox.length === 0;
@@ -165,9 +175,9 @@ async function fetchAll<T>(table: string, orders: string[]): Promise<T[]> {
 
 export async function loadDataset(): Promise<Dataset> {
   await flush();
-  // Never overwrite local changes that haven't reached the server yet.
+  // Offline with queued changes: keep showing them instead of failing.
   const cached = qc?.getQueryData<Dataset>(DATASET_KEY);
-  if (pendingCount() > 0 && cached) return cached;
+  if (pendingCount() > 0 && cached && !navigator.onLine) return cached;
 
   const [drivers, salary_history, attendance, holidays, adjustments, payments, payroll_months, admins, company] =
     await Promise.all([

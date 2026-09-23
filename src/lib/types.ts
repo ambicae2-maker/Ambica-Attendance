@@ -157,7 +157,9 @@ export interface MonthCalc {
   allowance: number;
   overtime: number;
   otherDeduction: number;
-  gross: number; // basic + extras − other deductions
+  deductionApplied: number; // the part of otherDeduction actually taken this month
+  deductionCarried: number; // the rest, carried into next month's balance
+  gross: number; // basic + extras − deductions taken (never below zero)
   advanceOpening: number;
   advanceGiven: number;
   advanceRecovered: number;

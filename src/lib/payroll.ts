@@ -13,7 +13,7 @@
  *  - Locked (paid) months are frozen: their saved snapshot is used as-is.
  *  - Math is exact; each line is rounded to whole rupees and lines always add up.
  */
-import { currentMonth, dayDate, daysIn, monthOf, monthRange, shiftMonth, todayISO } from "./dates";
+import { dayDate, daysIn, monthOf, monthRange, shiftMonth, todayISO } from "./dates";
 import type { DayInfo, DayStatus, DriverData, MonthCalc } from "./types";
 
 const FACTOR: Record<DayStatus, number> = { present: 1, holiday: 1, half: 0.5, absent: 0 };
@@ -27,11 +27,13 @@ export function salaryOn(history: DriverData["salary_history"], date: string): n
   return Number(s);
 }
 
-/** Build every month for one driver, from joining month to the current month (or `until`). */
+/** Build every month for one driver, from joining month to `today`'s month (or `until`). */
 export function buildLedger(data: DriverData, until?: string, today = todayISO()): MonthCalc[] {
   const { driver } = data;
-  const lastMonth = until ?? currentMonth();
+  const lastMonth = until ?? monthOf(today);
+  // A driver whose joining date is in the future still needs one month to show.
   const months = monthRange(monthOf(driver.joining_date), lastMonth);
+  if (!months.length) months.push(monthOf(driver.joining_date));
 
   const attendance = new Map(data.attendance.map((a) => [a.date, a]));
   const holidays = new Map(data.holidays.map((h) => [h.date, h]));
@@ -41,13 +43,21 @@ export function buildLedger(data: DriverData, until?: string, today = todayISO()
   let carry = 0;
   for (const month of months) {
     const snap = locked.get(month);
-    const calc = snap
-      ? {
-          ...snap.snapshot,
-          locked: true,
-          ...paymentFields(data, month, snap.snapshot.net, snap.snapshot.dueDate),
-        }
-      : calcMonth(data, month, carry, today, attendance, holidays);
+    let calc: MonthCalc;
+    if (snap) {
+      // Frozen month. If an earlier (unlocked) month changed after this one was
+      // locked, keep that difference in the carry instead of losing it.
+      const drift = carry - (snap.snapshot.advanceOpening ?? 0);
+      calc = {
+        ...snap.snapshot,
+        locked: true,
+        ...paymentFields(data, month, snap.snapshot.net, snap.snapshot.dueDate),
+      };
+      carry = Math.max(0, calc.advanceClosing + drift);
+      out.push(calc);
+      continue;
+    }
+    calc = calcMonth(data, month, carry, today, attendance, holidays);
     out.push(calc);
     carry = calc.advanceClosing;
   }
@@ -55,7 +65,9 @@ export function buildLedger(data: DriverData, until?: string, today = todayISO()
 }
 
 export function monthFor(data: DriverData, month: string, today = todayISO()): MonthCalc {
-  const ledger = buildLedger(data, month < currentMonth() ? month : undefined, today);
+  // Always build the chain up to the wanted month, so advances carry correctly and
+  // a month outside the "today" range is still calculated with its real attendance.
+  const ledger = buildLedger(data, month > monthOf(today) ? month : undefined, today);
   return ledger.find((m) => m.month === month) ?? emptyMonth(data, month, today);
 }
 
@@ -116,17 +128,23 @@ function calcMonth(
   const bonus = sum("bonus"), allowance = sum("allowance"), overtime = sum("overtime");
   const otherDeduction = sum("deduction"), advanceGiven = sum("advance");
 
-  // Round each line, then derive totals from rounded lines so everything adds up exactly.
-  const basicEarned = r(basic);
+  // "Full month pay" is the exact figure; the other lines are rounded and the
+  // basic is derived from them, so every line on the slip adds up exactly.
+  const fullMonth = r(full);
   const absentDeduction = r(absentDed);
   const halfDeduction = r(halfDed);
   const pendingR = r(pending);
-  const fullMonth = basicEarned + absentDeduction + halfDeduction + pendingR;
+  const basicEarned = fullMonth - absentDeduction - halfDeduction - pendingR;
 
-  const gross = basicEarned + bonus + allowance + overtime - otherDeduction;
+  // Deductions can never push pay below zero: whatever cannot be taken this
+  // month is carried to the next one (same as an advance).
+  const earnings = basicEarned + bonus + allowance + overtime;
+  const deductionApplied = Math.min(otherDeduction, Math.max(0, earnings));
+  const deductionCarried = otherDeduction - deductionApplied;
+  const gross = earnings - deductionApplied;
   const available = advanceOpening + advanceGiven;
-  const advanceRecovered = Math.min(available, Math.max(0, gross));
-  const net = Math.max(0, gross - advanceRecovered);
+  const advanceRecovered = Math.min(available, gross);
+  const net = gross - advanceRecovered;
   const monthlySalary = r(lastEmployedSalary || salaryOn(data.salary_history, dayDate(month, n)));
   const payDay = data.company?.pay_day ?? 5;
   const dueDate = dayDate(shiftMonth(month, 1), payDay);
@@ -150,11 +168,14 @@ function calcMonth(
     allowance,
     overtime,
     otherDeduction,
+    deductionApplied,
+    deductionCarried,
     gross,
     advanceOpening,
     advanceGiven,
     advanceRecovered,
-    advanceClosing: available - advanceRecovered,
+    // whatever could not be taken this month rolls into next month's opening balance
+    advanceClosing: available - advanceRecovered + deductionCarried,
     net,
     ...paymentFields(data, month, net, dueDate),
   };

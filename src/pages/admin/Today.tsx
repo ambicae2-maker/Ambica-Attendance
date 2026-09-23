@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Lock, PartyPopper, Search, Truck } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { setAttendance, useDataset } from "@/lib/data";
-import { fmtDate, monthOf, toISODate, todayISO } from "@/lib/dates";
+import { fmtDate, monthOf, toISODate } from "@/lib/dates";
+import { useToday } from "@/lib/today";
 import { cn, errorMessage } from "@/lib/utils";
 import { STATUS_ORDER } from "@/lib/payroll";
 import type { DayStatus } from "@/lib/types";
@@ -18,7 +19,14 @@ const SHORT: Record<DayStatus, string> = { present: "P", half: "½", absent: "A"
 export default function Today() {
   const { t, lang } = useI18n();
   const { data: ds, isPending, error, refetch } = useDataset();
-  const [date, setDate] = useState(todayISO());
+  const now = useToday();
+  const [date, setDate] = useState(now);
+  const [lastNow, setLastNow] = useState(now);
+  if (now !== lastNow) {
+    // the day rolled over while the screen was open
+    setLastNow(now);
+    if (date === lastNow) setDate(now);
+  }
   const [q, setQ] = useState("");
 
   const holiday = ds?.holidays.find((h) => h.date === date);
@@ -79,7 +87,7 @@ export default function Today() {
 
         <div className="grid grid-cols-4 gap-2">
           {STATUS_ORDER.map((s) => (
-            <div key={s} className={cn("rounded-xl py-2.5 text-center", STATUS_STYLES[s].soft)}>
+            <div key={s} data-testid={"tile-" + s} data-count={counts[s] ?? 0} className={cn("rounded-xl py-2.5 text-center", STATUS_STYLES[s].soft)}>
               <div className="font-display text-2xl font-bold tabular">{counts[s] ?? 0}</div>
               <div className="text-[11px] font-semibold uppercase opacity-80">{t(`status_${s}`)}</div>
             </div>

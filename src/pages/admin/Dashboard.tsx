@@ -5,7 +5,8 @@ import { useI18n } from "@/lib/i18n";
 import { useDataset } from "@/lib/data";
 import { driverSlice } from "@/lib/store";
 import { buildLedger } from "@/lib/payroll";
-import { currentMonth, fmtDate, fmtMonth, shiftMonth, todayISO } from "@/lib/dates";
+import { currentMonth, fmtDate, fmtMonth, shiftMonth } from "@/lib/dates";
+import { useToday } from "@/lib/today";
 import { cn, inr } from "@/lib/utils";
 import type { Dataset, Driver, MonthCalc } from "@/lib/types";
 import { Avatar, Button, Card, EmptyState, FullScreenLoader, Input, StatusBadge } from "@/components/ui";
@@ -18,25 +19,25 @@ interface Row {
   previous: MonthCalc | undefined;
 }
 
-export function useDriverRows(ds: Dataset | undefined): Row[] {
+export function useDriverRows(ds: Dataset | undefined, today?: string): Row[] {
   return useMemo(() => {
     if (!ds) return [];
     const cur = currentMonth();
     const prev = shiftMonth(cur, -1);
     return ds.drivers.map((driver) => {
-      const ledger = buildLedger(driverSlice(ds, driver.id)!);
+      const ledger = buildLedger(driverSlice(ds, driver.id)!, undefined, today);
       return { driver, current: ledger.find((m) => m.month === cur)!, previous: ledger.find((m) => m.month === prev) };
     });
-  }, [ds]);
+  }, [ds, today]);
 }
 
 export default function Dashboard() {
   const { t, lang } = useI18n();
   const { data: ds, isPending, error, refetch } = useDataset();
-  const rows = useDriverRows(ds);
+  const today = useToday();
+  const rows = useDriverRows(ds, today);
   const [q, setQ] = useState("");
   const [showInactive, setShowInactive] = useState(false);
-  const today = todayISO();
 
   const active = rows.filter((r) => r.driver.active);
   const todayStatus = (r: Row) => r.current?.days.find((d) => d.date === today);

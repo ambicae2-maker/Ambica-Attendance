@@ -17,12 +17,12 @@ import { applyTheme } from "@/lib/theme";
 
 applyTheme();
 
-const MONTH = 1000 * 60 * 60 * 24 * 30;
+const OFFLINE_CACHE_AGE = 1000 * 60 * 60 * 24 * 7; // a week of offline use
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      gcTime: MONTH,
+      gcTime: OFFLINE_CACHE_AGE,
       networkMode: "offlineFirst", // show cached data offline, refresh when possible
       refetchOnReconnect: false, // the store flushes queued changes first, then refetches
       retry: 1,
@@ -40,7 +40,7 @@ const persister = createAsyncStoragePersister({
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, maxAge: MONTH, buster: "v1" }}>
+    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, maxAge: OFFLINE_CACHE_AGE, buster: "v2" }}>
       <I18nProvider>
         <AuthProvider>
           <ConfirmProvider>

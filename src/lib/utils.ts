@@ -12,9 +12,9 @@ export const inr = (n: number) =>
 // No 0/O/1/I to avoid confusion when reading an ID aloud.
 const ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 
-/** Random, hard-to-guess driver ID like AMB-K7Q2X9. */
+/** Random, hard-to-guess driver ID like AMB-K7Q2X9HN4P. */
 export function newDriverCode() {
-  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  const bytes = crypto.getRandomValues(new Uint8Array(10));
   return "AMB-" + Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join("");
 }
 

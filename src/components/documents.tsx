@@ -3,7 +3,7 @@
  * Colors come from the same tokens as the app.
  */
 import type { ReactNode } from "react";
-import { fmtDate, fmtMonth, todayISO } from "@/lib/dates";
+import { firstWeekday, fmtDate, fmtMonth, todayISO } from "@/lib/dates";
 import { cn, inr } from "@/lib/utils";
 import type { Adjustment, DayStatus, DriverData, MonthCalc } from "@/lib/types";
 import { STATUS_STYLES } from "./ui";
@@ -47,6 +47,14 @@ function InfoGrid({ items }: { items: [string, ReactNode][] }) {
   );
 }
 
+/** First and last day the driver was actually employed inside this month. */
+function payPeriod(calc: MonthCalc) {
+  const employed = calc.days.filter((d) => d.employed);
+  const from = employed[0] ?? calc.days[0];
+  const to = employed[employed.length - 1] ?? calc.days[calc.days.length - 1];
+  return `${fmtDate(from.date)} – ${fmtDate(to.date)}`;
+}
+
 function DriverBlock({ data, calc }: { data: DriverData; calc: MonthCalc }) {
   const d = data.driver;
   return (
@@ -56,11 +64,11 @@ function DriverBlock({ data, calc }: { data: DriverData; calc: MonthCalc }) {
         <InfoGrid
           items={[
             ["Driver name", d.name],
-            ["Driver ID", d.login_code],
             ["Truck number", d.truck_number],
             ["Phone", d.phone],
+            ["Bank / UPI", d.bank_account ? `A/c ${d.bank_account}` : d.upi_id],
             ["Joining date", fmtDate(d.joining_date)],
-            ["Pay period", `${fmtDate(calc.days[0].date)} – ${fmtDate(calc.days[calc.days.length - 1].date)}`],
+            ["Pay period", payPeriod(calc)],
           ]}
         />
       </div>
@@ -137,6 +145,12 @@ export function inWords(n: number) {
   return parts.join(" ");
 }
 
+/** One line per kind: shows the detail when there is a single entry, otherwise a count. */
+function labelFor(adj: Adjustment[], kind: string, base: string) {
+  const rows = adj.filter((a) => a.kind === kind);
+  return rows.length === 1 ? extraLabel(rows[0]) : `${base} (${rows.length} entries)`;
+}
+
 function extraLabel(a: Adjustment) {
   const base = { bonus: "Bonus", allowance: "Allowance", overtime: "Overtime", deduction: "Deduction", advance: "Advance" }[a.kind];
   const qty = a.kind === "overtime" && a.quantity ? ` (${a.quantity} ${a.unit === "hour" ? "hrs" : "days"} × ${inr(a.rate ?? 0)})` : "";
@@ -162,17 +176,27 @@ export function SalarySlip({ data, calc }: { data: DriverData; calc: MonthCalc }
   const adj = data.adjustments.filter((a) => a.month === calc.month);
   const payments = data.payments.filter((p) => p.month === calc.month).sort((a, b) => a.paid_on.localeCompare(b.paid_on));
 
-  const earnings: [string, number][] = [["Basic salary (full month)", calc.fullMonth]];
-  adj.filter((a) => ["bonus", "allowance", "overtime"].includes(a.kind)).forEach((a) => earnings.push([extraLabel(a), Math.round(Number(a.amount))]));
+  const days = (n: number) => `${n} day${n === 1 ? "" : "s"}`;
+  const notEmployed = calc.daysInMonth - calc.counts.employed;
+
+  // Every printed row comes from the engine's rounded figures, so the two
+  // columns always agree and Earnings − Deductions equals the net exactly.
+  const basicLabel = notEmployed
+    ? `Basic salary (${days(calc.counts.employed)} employed of ${calc.daysInMonth})`
+    : "Basic salary (full month)";
+  const earnings: [string, number][] = [[basicLabel, calc.fullMonth]];
+  if (calc.bonus) earnings.push([labelFor(adj, "bonus", "Bonus"), calc.bonus]);
+  if (calc.allowance) earnings.push([labelFor(adj, "allowance", "Allowance"), calc.allowance]);
+  if (calc.overtime) earnings.push([labelFor(adj, "overtime", "Overtime"), calc.overtime]);
   const totalEarnings = calc.fullMonth + calc.bonus + calc.allowance + calc.overtime;
 
   const deductions: [string, number][] = [];
-  if (calc.absentDeduction) deductions.push([`Absent (${calc.counts.absent} day${calc.counts.absent === 1 ? "" : "s"})`, calc.absentDeduction]);
+  if (calc.absentDeduction) deductions.push([`Absent (${days(calc.counts.absent)})`, calc.absentDeduction]);
   if (calc.halfDeduction) deductions.push([`Half days (${calc.counts.half})`, calc.halfDeduction]);
   if (calc.pending) deductions.push([`Days not yet worked (${calc.counts.upcoming})`, calc.pending]);
-  adj.filter((a) => a.kind === "deduction").forEach((a) => deductions.push([extraLabel(a), Math.round(Number(a.amount))]));
+  if (calc.deductionApplied) deductions.push([labelFor(adj, "deduction", "Deduction"), calc.deductionApplied]);
   if (calc.advanceRecovered) deductions.push(["Advance recovered", calc.advanceRecovered]);
-  const totalDeductions = totalEarnings - calc.net;
+  const totalDeductions = deductions.reduce((s, [, v]) => s + v, 0);
 
   return (
     <div className="flex min-h-[1123px] flex-col bg-white font-sans text-foreground">
@@ -267,7 +291,7 @@ export function SalarySlip({ data, calc }: { data: DriverData; calc: MonthCalc }
 
 // ── Attendance report ───────────────────────────────────────
 export function AttendanceReport({ data, calc }: { data: DriverData; calc: MonthCalc }) {
-  const blanks = (new Date(calc.month).getDay() + 6) % 7;
+  const blanks = firstWeekday(calc.month);
   const special = calc.days.filter((d) => d.employed && (d.source !== "default" || d.note));
   return (
     <div className="flex min-h-[1123px] flex-col bg-white font-sans text-foreground">

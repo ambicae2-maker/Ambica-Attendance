@@ -96,6 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    const email = session?.user.email;
+    if (email) writeStore(adminCacheKey(email), null); // no offline admin access after signing out
     if (session) await supabase.auth.signOut().catch(() => undefined);
     setDriverCode(null);
     setIsAdmin(false);

@@ -6,8 +6,9 @@ import { useAuth } from "@/lib/auth";
 import { usePortal } from "@/lib/data";
 import { NotFoundError, useSyncState } from "@/lib/store";
 import { buildLedger, dayPay } from "@/lib/payroll";
-import { currentMonth, fmtDate, fmtMonth, monthOf, todayISO } from "@/lib/dates";
+import { currentMonth, fmtDate, fmtMonth, monthOf } from "@/lib/dates";
 import { usePdfExport } from "@/lib/pdf";
+import { useToday } from "@/lib/today";
 import { cn, inr } from "@/lib/utils";
 import { Avatar, Button, Card, FullScreenLoader, Row, SectionTitle } from "@/components/ui";
 import { AttendanceCalendar, CalendarLegend, LiveAmount, MonthSwitcher, StatusTiles } from "@/components/attendance";
@@ -23,7 +24,8 @@ export default function DriverHome() {
   const [month, setMonth] = useState(currentMonth());
   const { exportPdf, busy, holder } = usePdfExport();
 
-  const ledger = useMemo(() => (q.data ? buildLedger(q.data) : []), [q.data]);
+  const today = useToday();
+  const ledger = useMemo(() => (q.data ? buildLedger(q.data, undefined, today) : []), [q.data, today]);
 
   // ID was changed or removed by the admin → back to login.
   const idGone = q.error instanceof NotFoundError;
@@ -49,7 +51,7 @@ export default function DriverHome() {
   const { driver } = data;
   const calc = ledger.find((m) => m.month === month) ?? ledger[ledger.length - 1];
   const isCurrent = calc.month === currentMonth();
-  const todayDay = calc.days.find((d) => d.date === todayISO());
+  const todayDay = calc.days.find((d) => d.date === today);
   const todayEarned = todayDay ? Math.round(dayPay(todayDay)) : 0;
   const payments = data.payments.filter((p) => p.month === calc.month);
   const updated = q.dataUpdatedAt ? new Date(q.dataUpdatedAt).toLocaleTimeString(lang === "en" ? "en-IN" : `${lang}-IN`, { hour: "2-digit", minute: "2-digit" }) : "";
@@ -76,7 +78,7 @@ export default function DriverHome() {
             <div className="min-w-0">
               <h1 className="truncate font-display text-2xl font-bold">{driver.name}</h1>
               <div className="flex flex-wrap items-center gap-x-3 text-sm text-white/70">
-                <span className="font-mono">{driver.login_code}</span>
+                {driver.login_code && <span className="font-mono">{driver.login_code}</span>}
                 {driver.truck_number && <span className="inline-flex items-center gap-1"><Truck className="size-3.5" />{driver.truck_number}</span>}
               </div>
             </div>

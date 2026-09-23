@@ -113,7 +113,7 @@ function Form({ existing, currentSalary }: { existing?: Driver; currentSalary: n
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={t("joining_date")}>
-                <Input type="date" value={f.joining_date} onChange={set("joining_date")} required />
+                <Input type="date" value={f.joining_date} max={todayISO()} onChange={set("joining_date")} required />
               </Field>
               <Field label={t("monthly_salary")} error={errors.salary}>
                 <MoneyInput value={f.salary} onChange={(v) => setF((s) => ({ ...s, salary: v }))} placeholder="18000" />

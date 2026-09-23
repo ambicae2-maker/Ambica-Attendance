@@ -36,12 +36,15 @@ export function SalaryBreakdown({ calc, showPayments = true }: { calc: MonthCalc
         {calc.pending > 0 && <Row label={t("pending_days", { n: calc.counts.upcoming })} value={neg(calc.pending)} muted />}
         <Row label={t("basic_earned")} value={inr(calc.basicEarned)} strong />
       </div>
-      {(calc.bonus || calc.allowance || calc.overtime || calc.otherDeduction) > 0 && (
+      {calc.bonus + calc.allowance + calc.overtime + calc.otherDeduction > 0 && (
         <div className="py-1">
           {calc.bonus > 0 && <Row label={t("bonus")} value={`+ ${inr(calc.bonus)}`} className="text-present-ink" />}
           {calc.allowance > 0 && <Row label={t("allowance")} value={`+ ${inr(calc.allowance)}`} className="text-present-ink" />}
           {calc.overtime > 0 && <Row label={t("overtime")} value={`+ ${inr(calc.overtime)}`} className="text-present-ink" />}
-          {calc.otherDeduction > 0 && <Row label={t("deduction")} value={neg(calc.otherDeduction)} muted />}
+          {calc.deductionApplied > 0 && <Row label={t("deduction")} value={neg(calc.deductionApplied)} muted />}
+          {calc.deductionCarried > 0 && (
+            <Row label={t("deduction_carried")} value={inr(calc.deductionCarried)} muted className="text-half-ink" />
+          )}
           <Row label={t("gross")} value={inr(calc.gross)} strong />
         </div>
       )}
@@ -51,7 +54,7 @@ export function SalaryBreakdown({ calc, showPayments = true }: { calc: MonthCalc
         </div>
       )}
       <div className="pt-2">
-        <div className="flex items-baseline justify-between rounded-lg bg-ink px-4 py-3 text-ink-foreground">
+        <div data-testid="net-pay" data-value={calc.net} className="flex items-baseline justify-between rounded-lg bg-ink px-4 py-3 text-ink-foreground">
           <span className="font-semibold">{calc.complete || calc.locked ? t("net_pay") : t("net_so_far")}</span>
           <span className="font-display text-2xl font-bold tabular">{inr(calc.net)}</span>
         </div>
