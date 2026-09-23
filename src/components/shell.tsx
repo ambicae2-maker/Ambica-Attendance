@@ -86,7 +86,7 @@ export function PhotoPicker({ src, name, onPick, onRemove, round = true }: {
         {round ? (
           <Avatar src={src} name={name || "?"} className="size-24 text-2xl ring-4 ring-muted" />
         ) : (
-          <div className="grid size-24 place-items-center overflow-hidden rounded-xl border bg-muted">
+          <div className="grid size-24 place-items-center overflow-hidden rounded-xl border bg-white p-2">
             {src ? <img src={src} alt="" className="size-full object-contain" /> : <ImagePlus className="size-7 text-muted-foreground" />}
           </div>
         )}

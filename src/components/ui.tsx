@@ -157,11 +157,12 @@ export function Badge({ className, children }: { className?: string; children: R
   );
 }
 
+// Solid colours are lighter in dark mode, so their text flips to dark for readability.
 export const STATUS_STYLES: Record<DayStatus, { solid: string; soft: string; dot: string }> = {
-  present: { solid: "bg-present text-white", soft: "bg-present-soft text-present-ink", dot: "bg-present" },
+  present: { solid: "bg-present text-white dark:text-ink", soft: "bg-present-soft text-present-ink", dot: "bg-present" },
   half: { solid: "bg-half text-gold-foreground", soft: "bg-half-soft text-half-ink", dot: "bg-half" },
-  absent: { solid: "bg-absent text-white", soft: "bg-absent-soft text-absent-ink", dot: "bg-absent" },
-  holiday: { solid: "bg-holiday text-white", soft: "bg-holiday-soft text-holiday-ink", dot: "bg-holiday" },
+  absent: { solid: "bg-absent text-white dark:text-ink", soft: "bg-absent-soft text-absent-ink", dot: "bg-absent" },
+  holiday: { solid: "bg-holiday text-white dark:text-ink", soft: "bg-holiday-soft text-holiday-ink", dot: "bg-holiday" },
 };
 
 export function StatusBadge({ status }: { status: DayStatus }) {
@@ -232,7 +233,7 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-[2px] data-[state=open]:animate-[fade-in_150ms]" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px] data-[state=open]:animate-[fade-in_150ms] dark:bg-black/70" />
         <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col rounded-t-3xl bg-card shadow-premium outline-none data-[state=open]:animate-[sheet-up_220ms_cubic-bezier(0.22,1,0.36,1)] sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-[calc(100%-2rem)] sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl">
           {/* grab bar (phones) */}
           <div className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-border sm:hidden" />

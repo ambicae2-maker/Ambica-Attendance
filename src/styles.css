@@ -87,6 +87,9 @@
   .shadow-soft { box-shadow: 0 1px 2px color-mix(in oklch, var(--ink) 6%, transparent), 0 8px 24px -12px color-mix(in oklch, var(--ink) 18%, transparent); }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { scrollbar-width: none; }
+  /* Shadows need real black on a dark page, otherwise cards look flat */
+  .dark .shadow-soft { box-shadow: 0 1px 2px rgb(0 0 0 / 0.45), 0 12px 28px -16px rgb(0 0 0 / 0.75); }
+  .dark .shadow-premium { box-shadow: 0 28px 64px -26px rgb(0 0 0 / 0.9); }
 }
 
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }

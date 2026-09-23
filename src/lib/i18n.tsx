@@ -105,7 +105,7 @@ const en: Dict = {
   add_holiday: "Add holiday", holiday_name: "Holiday name", no_holidays: "No holidays added",
   holiday_driver_hint: "To give a holiday to one driver only, tap that day on their calendar.",
 
-  company: "Company details", company_name: "Company name", gst: "GST number", logo: "Logo",
+  company: "Company details", company_hint: "Shown on salary slips and attendance reports.", company_name: "Company name", gst: "GST number", logo: "Logo",
   pay_day: "Salary pay day", pay_day_hint: "Day of the next month when salary is paid",
   admins: "Admins", add_admin: "Add admin", admin_added: "Added. They can now create a password with this email.",
   super_admin: "Super admin", send_invite: "Send invitation",
@@ -113,7 +113,7 @@ const en: Dict = {
   admin_invited: "Invitation sent to {email}.", admin_invited_existing: "{email} already had a login, so a set-password link was emailed.",
   admins_hint: "Only a super admin can add or remove admins.", admins_hint_super: "New admins receive an email to set their own password.",
   forgot_hint: "We will email you a link to set a new password.",
-  remove: "Remove", you: "You", activity: "Activity log", appearance: "Appearance", name: "Name",
+  remove: "Remove", you: "You", signed_in_as: "Signed in as", activity: "Activity log", appearance: "Appearance", name: "Name",
 
   my_salary: "Salary earned in {month}", live_hint: "Grows with every working day",
   today_plus: "+{amt} today", your_attendance: "Your attendance", payments_received: "Payments received",
@@ -225,7 +225,7 @@ const hi: Dict = {
   add_holiday: "छुट्टी जोड़ें", holiday_name: "छुट्टी का नाम", no_holidays: "कोई छुट्टी नहीं जोड़ी",
   holiday_driver_hint: "सिर्फ़ एक ड्राइवर को छुट्टी देने के लिए उसके कैलेंडर में वह दिन दबाएँ।",
 
-  company: "कंपनी जानकारी", company_name: "कंपनी का नाम", gst: "GST नंबर", logo: "लोगो",
+  company: "कंपनी जानकारी", company_hint: "यह सैलरी स्लिप और हाज़िरी रिपोर्ट पर दिखती है।", company_name: "कंपनी का नाम", gst: "GST नंबर", logo: "लोगो",
   pay_day: "सैलरी की तारीख", pay_day_hint: "अगले महीने की किस तारीख को सैलरी मिलती है",
   admins: "एडमिन", add_admin: "एडमिन जोड़ें", admin_added: "जुड़ गया। अब वे इस ईमेल से पासवर्ड बना सकते हैं।",
   super_admin: "सुपर एडमिन", send_invite: "न्योता भेजें",
@@ -233,7 +233,7 @@ const hi: Dict = {
   admin_invited: "{email} को न्योता भेजा गया।", admin_invited_existing: "{email} का लॉगिन पहले से था, पासवर्ड सेट करने की लिंक ईमेल की गई।",
   admins_hint: "सिर्फ़ सुपर एडमिन ही एडमिन जोड़ या हटा सकते हैं।", admins_hint_super: "नए एडमिन को पासवर्ड बनाने के लिए ईमेल जाएगा।",
   forgot_hint: "नया पासवर्ड बनाने की लिंक आपके ईमेल पर भेजी जाएगी।",
-  remove: "हटाएँ", you: "आप", activity: "गतिविधि लॉग", appearance: "दिखावट", name: "नाम",
+  remove: "हटाएँ", you: "आप", signed_in_as: "लॉग इन हैं", activity: "गतिविधि लॉग", appearance: "दिखावट", name: "नाम",
 
   my_salary: "{month} में कमाई", live_hint: "हर काम के दिन के साथ बढ़ती है",
   today_plus: "आज +{amt}", your_attendance: "आपकी हाज़िरी", payments_received: "मिले भुगतान",
@@ -345,7 +345,7 @@ const gu: Dict = {
   add_holiday: "રજા ઉમેરો", holiday_name: "રજાનું નામ", no_holidays: "કોઈ રજા ઉમેરી નથી",
   holiday_driver_hint: "ફક્ત એક ડ્રાઇવરને રજા આપવા તેના કૅલેન્ડરમાં તે દિવસ દબાવો.",
 
-  company: "કંપની વિગત", company_name: "કંપનીનું નામ", gst: "GST નંબર", logo: "લોગો",
+  company: "કંપની વિગત", company_hint: "આ પગાર સ્લિપ અને હાજરી રિપોર્ટ પર દેખાય છે.", company_name: "કંપનીનું નામ", gst: "GST નંબર", logo: "લોગો",
   pay_day: "પગારની તારીખ", pay_day_hint: "આવતા મહિનાની કઈ તારીખે પગાર મળે છે",
   admins: "એડમિન", add_admin: "એડમિન ઉમેરો", admin_added: "ઉમેરાયા. હવે તેઓ આ ઈમેલથી પાસવર્ડ બનાવી શકે છે.",
   super_admin: "સુપર એડમિન", send_invite: "આમંત્રણ મોકલો",
@@ -353,7 +353,7 @@ const gu: Dict = {
   admin_invited: "{email} ને આમંત્રણ મોકલ્યું.", admin_invited_existing: "{email} નું લૉગિન પહેલેથી હતું, પાસવર્ડ સેટ કરવાની લિંક ઈમેલ કરી.",
   admins_hint: "ફક્ત સુપર એડમિન જ એડમિન ઉમેરી કે કાઢી શકે.", admins_hint_super: "નવા એડમિનને પાસવર્ડ બનાવવા ઈમેલ જશે.",
   forgot_hint: "નવો પાસવર્ડ બનાવવાની લિંક તમારા ઈમેલ પર મોકલાશે.",
-  remove: "કાઢો", you: "તમે", activity: "પ્રવૃત્તિ લૉગ", appearance: "દેખાવ", name: "નામ",
+  remove: "કાઢો", you: "તમે", signed_in_as: "લૉગ ઇન છો", activity: "પ્રવૃત્તિ લૉગ", appearance: "દેખાવ", name: "નામ",
 
   my_salary: "{month} માં કમાણી", live_hint: "દરેક કામના દિવસે વધે છે",
   today_plus: "આજે +{amt}", your_attendance: "તમારી હાજરી", payments_received: "મળેલી ચુકવણી",
