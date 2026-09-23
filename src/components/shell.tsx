@@ -196,7 +196,7 @@ export function PageHeader({ title, sub, back, actions }: { title: ReactNode; su
   const { t } = useI18n();
   return (
     <header className="pt-safe sticky top-0 z-30 border-b bg-background/90 backdrop-blur-lg">
-      <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3 md:px-8">
+      <div className={cn(CONTAINER, "flex items-center gap-3 py-3")}>
         {back && (
           <button
             onClick={() => (typeof back === "string" ? nav(back) : nav(-1))}
@@ -217,8 +217,14 @@ export function PageHeader({ title, sub, back, actions }: { title: ReactNode; su
   );
 }
 
+/**
+ * Page width: fluid, so big screens are actually used. The very high cap only
+ * stops lines from stretching uncomfortably on ultra-wide monitors.
+ */
+export const CONTAINER = "mx-auto w-full max-w-[1700px] px-4 sm:px-6 xl:px-10";
+
 export function Page({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("mx-auto max-w-5xl space-y-5 px-4 py-5 md:px-8", className)}>{children}</div>;
+  return <div className={cn(CONTAINER, "space-y-5 py-5", className)}>{children}</div>;
 }
 
 /** Credit line shown at the bottom of the app and on printed documents. */

@@ -4,7 +4,7 @@ import { PartyPopper, Plus, Trash2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { addHoliday, removeHoliday, useDataset } from "@/lib/data";
 import { fmtDate, todayISO } from "@/lib/dates";
-import { errorMessage } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 import { Button, Card, EmptyState, Field, FullScreenLoader, Input, Sheet, useConfirm } from "@/components/ui";
 import { Page, PageHeader } from "@/components/shell";
 import { notifySaved } from "./common";
@@ -40,7 +40,7 @@ export default function Holidays() {
         sub={t("holidays_sub")}
         actions={<Button size="sm" onClick={() => setOpen(true)}><Plus className="size-4" /> {t("add")}</Button>}
       />
-      <Page className="max-w-2xl">
+      <Page>
         <div className="flex items-center justify-center gap-2">
           {[year - 1, year, year + 1].map((y) => (
             <button
@@ -56,9 +56,12 @@ export default function Holidays() {
         {holidays.length === 0 ? (
           <EmptyState icon={<PartyPopper className="size-8" />} title={t("no_holidays")} sub={t("holiday_driver_hint")} />
         ) : (
-          <Card className="divide-y">
+          <Card className="divide-y md:grid md:grid-cols-2 md:divide-y-0 xl:grid-cols-3 2xl:grid-cols-4">
             {holidays.map((h) => (
-              <div key={h.id} className={h.date < today ? "flex items-center gap-4 p-4 opacity-60" : "flex items-center gap-4 p-4"}>
+              <div
+                key={h.id}
+                className={cn("flex items-center gap-4 border-b p-4 last:border-b-0 md:border-b", h.date < today && "opacity-60")}
+              >
                 <div className="grid w-14 shrink-0 place-items-center rounded-xl bg-holiday-soft py-2 text-holiday-ink">
                   <span className="font-display text-xl font-bold leading-none">{h.date.slice(8)}</span>
                   <span className="text-[10px] font-bold uppercase">{fmtDate(h.date, lang, { month: "short" })}</span>

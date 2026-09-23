@@ -65,8 +65,8 @@ export default function Today() {
   return (
     <>
       <PageHeader title={t("today_title")} sub={t("today_sub")} />
-      <Page className="max-w-3xl">
-        <Card className="flex items-center gap-2 p-2">
+      <Page>
+        <Card className="flex items-center gap-2 p-2 md:mx-auto md:w-full md:max-w-lg">
           <button onClick={() => shift(-1)} className="grid size-10 place-items-center rounded-lg hover:bg-muted" aria-label="Previous day">
             <ChevronLeft className="size-5" />
           </button>
@@ -85,7 +85,7 @@ export default function Today() {
           </div>
         )}
 
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-2 md:gap-3">
           {STATUS_ORDER.map((s) => (
             <div key={s} data-testid={"tile-" + s} data-count={counts[s] ?? 0} className={cn("rounded-xl py-2.5 text-center", STATUS_STYLES[s].soft)}>
               <div className="font-display text-2xl font-bold tabular">{counts[s] ?? 0}</div>
@@ -101,7 +101,7 @@ export default function Today() {
           </div>
         )}
 
-        <div className="space-y-2">
+        <div className="grid gap-2 xl:grid-cols-2 2xl:grid-cols-3">
           {visible.map(({ driver, status, locked }) => (
             <Card key={driver.id} className="flex items-center gap-3 p-3">
               <Link to={`/admin/drivers/${driver.id}`} className="flex min-w-0 flex-1 items-center gap-3">

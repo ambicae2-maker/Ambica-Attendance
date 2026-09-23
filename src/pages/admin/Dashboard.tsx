@@ -89,7 +89,7 @@ export default function Dashboard() {
       />
       <Page>
         {/* Today at a glance */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard icon={<Users className="size-5" />} label={t("active_drivers")} value={active.length} tone="ink" />
           <StatCard label={t("present_today")} value={stats.present + stats.holiday} tone="present" />
           <StatCard label={t("half_today")} value={stats.half} tone="half" />
@@ -113,7 +113,7 @@ export default function Dashboard() {
         )}
 
         {/* Search */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("search_drivers")} className="pl-10" />
@@ -142,7 +142,7 @@ export default function Dashboard() {
         ) : filtered.length === 0 ? (
           <p className="py-10 text-center text-muted-foreground">{t("no_results")}</p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {filtered.map((r) => (
               <DriverCard key={r.driver.id} row={r} todayDay={todayStatus(r)} />
             ))}
@@ -199,7 +199,7 @@ function DriverCard({ row, todayDay }: { row: Row; todayDay?: MonthCalc["days"][
               </span>
             )}
           </div>
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             {!driver.active ? (
               <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">{t("inactive")}</span>
             ) : (
@@ -208,7 +208,7 @@ function DriverCard({ row, todayDay }: { row: Row; todayDay?: MonthCalc["days"][
             {current && current.counts.absent > 0 && <span className="text-xs text-muted-foreground">{t("absent_n", { n: current.counts.absent })}</span>}
           </div>
         </div>
-        <div className="text-right">
+        <div className="shrink-0 text-right">
           <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{t("this_month")}</div>
           <div className="font-display text-lg font-bold tabular">{inr(current?.net ?? 0)}</div>
           <ChevronRight className="ml-auto mt-1 size-4 text-muted-foreground transition group-hover:translate-x-0.5" />

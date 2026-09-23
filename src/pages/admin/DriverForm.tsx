@@ -91,8 +91,8 @@ function Form({ existing, currentSalary }: { existing?: Driver; currentSalary: n
   return (
     <>
       <PageHeader title={existing ? t("edit_driver") : t("new_driver")} back />
-      <Page className="max-w-2xl">
-        <form onSubmit={submit} className="space-y-5">
+      <Page>
+        <form onSubmit={submit} className="grid items-start gap-5 lg:grid-cols-2">
           <Card className="space-y-5 p-5">
             <PhotoPicker
               src={photoSrc}
@@ -156,7 +156,7 @@ function Form({ existing, currentSalary }: { existing?: Driver; currentSalary: n
             </Field>
           </Card>
 
-          <div className="pb-safe sticky bottom-20 z-20 md:bottom-4">
+          <div className="pb-safe sticky bottom-20 z-20 lg:col-span-2 md:bottom-4">
             <Button type="submit" size="lg" className="w-full shadow-premium" loading={busy}>
               {existing ? t("save") : t("add_driver")}
             </Button>

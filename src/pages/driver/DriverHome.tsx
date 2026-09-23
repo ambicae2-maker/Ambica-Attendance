@@ -62,7 +62,7 @@ export default function DriverHome() {
       <div className="relative overflow-hidden bg-ink px-5 pb-8 pt-[max(1rem,env(safe-area-inset-top))] text-ink-foreground">
         <div className="absolute -right-24 -top-10 size-72 rounded-full bg-brand/30 blur-3xl" />
         <div className="absolute -left-16 bottom-0 size-48 rounded-full bg-gold/10 blur-3xl" />
-        <div className="relative mx-auto max-w-lg">
+        <div className="relative mx-auto w-full max-w-3xl">
           <div className="flex items-center justify-between py-3">
             <img src="/logo-white.png" alt="Ambica Enterprise" className="h-12 w-auto" />
             <div className="flex items-center gap-2">
@@ -103,7 +103,7 @@ export default function DriverHome() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-lg space-y-5 px-4 pt-5">
+      <div className="mx-auto w-full max-w-3xl space-y-5 px-4 pt-5 sm:px-6">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
             {!online && <CloudOff className="size-3.5" />}

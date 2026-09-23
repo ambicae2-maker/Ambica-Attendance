@@ -55,7 +55,8 @@ export function AttendanceCalendar({ calc, onDayClick, compact }: {
   const blanks = firstWeekday(calc.month);
 
   return (
-    <div>
+    // capped so the day squares stay a sensible size on wide screens
+    <div className="mx-auto w-full max-w-[520px]">
       <div className="mb-2 grid grid-cols-7 gap-1.5 text-center text-xs font-semibold text-muted-foreground">
         {weekdayNames(lang).map((w, i) => (
           <div key={i}>{w}</div>

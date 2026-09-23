@@ -62,10 +62,10 @@ export default function Settings() {
   return (
     <>
       <PageHeader title={t("nav_settings")} sub={me} />
-      <Page className="max-w-5xl">
-        <div className="grid items-start gap-5 lg:grid-cols-2">
+      <Page>
+        <div className="grid items-start gap-5 lg:grid-cols-2 2xl:grid-cols-3">
           {/* Left column */}
-          <div className="space-y-5">
+          <div className="space-y-5 2xl:col-span-2">
             <CompanyCard company={ds.company} />
           </div>
 

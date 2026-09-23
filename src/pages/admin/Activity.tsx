@@ -38,7 +38,7 @@ export default function Activity() {
   return (
     <>
       <PageHeader title={t("activity")} back="/admin/settings" />
-      <Page className="max-w-2xl">
+      <Page>
         {q.isPending ? (
           <FullScreenLoader />
         ) : q.error ? (
@@ -46,9 +46,9 @@ export default function Activity() {
         ) : q.data.length === 0 ? (
           <EmptyState icon={<History className="size-8" />} title={t("none_added")} />
         ) : (
-          <Card className="divide-y">
+          <Card className="divide-y xl:grid xl:grid-cols-2 xl:divide-y-0">
             {q.data.map((r) => (
-              <div key={r.id} className="p-4">
+              <div key={r.id} className="border-b p-4 last:border-b-0 xl:border-b">
                 <div className="text-sm">
                   <span className="font-bold">{adminNames.get(r.actor ?? "") ?? r.actor ?? "system"}</span>{" "}
                   {describe(r, t, lang, (id) => names.get(id ?? "") ?? "—")}

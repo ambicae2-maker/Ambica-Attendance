@@ -182,9 +182,9 @@ function Profile({ data }: { data: DriverData }) {
           <MonthSwitcher month={calc.month} onChange={setMonth} min={minMonth} locked={locked} />
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-5">
+        <div className="grid gap-5 lg:grid-cols-5 2xl:grid-cols-3">
           {/* Left column */}
-          <div className="space-y-5 lg:col-span-3">
+          <div className="space-y-5 lg:col-span-3 2xl:col-span-2">
             <Card className="p-5">
               <div className="flex items-center gap-5">
                 <AttendanceRing calc={calc} />
@@ -261,7 +261,7 @@ function Profile({ data }: { data: DriverData }) {
           </div>
 
           {/* Right column */}
-          <div className="space-y-5 lg:col-span-2">
+          <div className="space-y-5 lg:col-span-2 2xl:col-span-1">
             <Card className="p-5">
               <SectionTitle>{t("salary_breakdown")}</SectionTitle>
               <SalaryBreakdown calc={calc} />
