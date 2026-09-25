@@ -57,6 +57,15 @@ npm run test:ui     # in another: drives the real screens in Edge (35 checks)
 
 The UI test uses `.env.test`, which points at a dead address, so it can never touch real data.
 
+## Keeping the database awake
+
+A free Supabase project pauses after 7 days of no activity. `.github/workflows/keep-supabase-awake.yml`
+pings it twice a day (15:00 and 03:00 IST) from GitHub Actions, so it never sleeps.
+Add two repository secrets for it: `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
+
+GitHub disables scheduled workflows after 60 days with no commits — it emails you first,
+and any push (or the Enable button in the Actions tab) turns it back on.
+
 ## Admins and email
 
 Admins cannot sign themselves up. A **super admin** invites them by email from **Settings → Admins**,

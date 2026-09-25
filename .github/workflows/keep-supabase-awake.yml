@@ -1,0 +1,74 @@
+# Keeps the Supabase project awake.
+#
+# A free Supabase project is paused after 7 days with no activity, and waking it
+# takes a minute — which looks broken to drivers and admins. This runs a tiny
+# query twice a day so the project is never idle that long.
+#
+# Needs two repository secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_URL       https://<your-project>.supabase.co
+#   SUPABASE_ANON_KEY  the publishable / anon key (NOT the service_role key)
+
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: "30 9 * * *" # 15:00 IST every day
+    - cron: "30 21 * * *" # 03:00 IST — backup run in case GitHub skips one
+  workflow_dispatch: # lets you run it by hand from the Actions tab
+
+concurrency:
+  group: keep-awake
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Query the database
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${URL}" ] || [ -z "${KEY}" ]; then
+            echo "::error::Add SUPABASE_URL and SUPABASE_ANON_KEY as repository secrets."
+            exit 1
+          fi
+
+          # driver_portal() runs real SQL and returns null for an unknown code,
+          # so it counts as database activity without touching any data.
+          for attempt in 1 2 3; do
+            code=$(curl -s -o /tmp/out.txt -w "%{http_code}" --max-time 60 \
+              -X POST "${URL}/rest/v1/rpc/driver_portal" \
+              -H "apikey: ${KEY}" \
+              -H "Content-Type: application/json" \
+              -d '{"p_code":"keep-alive"}') || code="000"
+            echo "attempt ${attempt}: HTTP ${code}"
+            if [ "${code}" = "200" ]; then
+              echo "Database is awake."
+              exit 0
+            fi
+            # A paused project can take ~60s to wake up, so give it time.
+            sleep 30
+          done
+
+          echo "::error::Database did not respond. Last body:"
+          cat /tmp/out.txt || true
+          exit 1
+
+      - name: Check the auth service
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "${URL}/auth/v1/health" -H "apikey: ${KEY}")
+          echo "auth health: HTTP ${code}"
+          [ "${code}" = "200" ]
+
+      - name: Check the website is up
+        continue-on-error: true # informational only; never fails the run
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://ambica-attendance-tau.vercel.app/)
+          echo "website: HTTP ${code}"
