@@ -212,7 +212,9 @@ export function removePayment(id: string) {
 
 // ── Month lock ──────────────────────────────────────────────
 export function lockMonth(driverId: string, calc: MonthCalc, by: string | null) {
-  const snapshot: MonthCalc = { ...calc, locked: true };
+  // Keep the snapshot small: the day-by-day calendar is rebuilt from attendance,
+  // which cannot change while the month is locked.
+  const snapshot: MonthCalc = { ...calc, days: [], locked: true };
   const row = { driver_id: driverId, month: calc.month, snapshot, locked_by: by };
   return commit(
     [{ kind: "upsert", table: "payroll_months", rows: [row as unknown as Record<string, unknown>], onConflict: "driver_id,month" }],

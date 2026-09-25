@@ -72,7 +72,8 @@ export function PhotoPicker({ src, name, onPick, onRemove, round = true }: {
     if (!file) return;
     setBusy(true);
     try {
-      onPick(await compressImage(file, round ? 640 : 512));
+      // driver photo: square 512px avatar · logo: keeps transparency for documents
+      onPick(await compressImage(file, 512, round ? { square: true } : { keepTransparency: true, maxBytes: 60_000 }));
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {

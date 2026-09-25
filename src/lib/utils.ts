@@ -37,15 +37,58 @@ export const initials = (name: string) =>
     .map((w) => w[0]?.toUpperCase())
     .join("");
 
-/** Resize + compress a photo to a small JPEG data URL (keeps uploads fast on mobile data). */
-export async function compressImage(file: File, max = 640, quality = 0.82): Promise<string> {
+const supportsWebp = () => document.createElement("canvas").toDataURL("image/webp").startsWith("data:image/webp");
+
+/**
+ * Shrinks a photo on the phone before it is ever uploaded.
+ *
+ * A camera photo is 3–8 MB; this turns it into roughly 20–40 KB by resizing,
+ * cropping a driver photo to a square, saving as WebP where supported, and
+ * lowering quality step by step until it is under `maxBytes`.
+ */
+export async function compressImage(
+  file: File,
+  max = 512,
+  { square = false, maxBytes = 45_000, keepTransparency = false }: { square?: boolean; maxBytes?: number; keepTransparency?: boolean } = {},
+): Promise<string> {
   const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL("image/jpeg", quality);
+  const ctx = canvas.getContext("2d")!;
+
+  if (square) {
+    // centre-crop to a square: no wasted pixels, and every avatar looks the same
+    const side = Math.min(bitmap.width, bitmap.height);
+    const size = Math.min(max, side);
+    canvas.width = canvas.height = size;
+    ctx.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, size, size);
+  } else {
+    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  }
+  bitmap.close?.();
+
+  const webp = supportsWebp();
+  const type = webp ? "image/webp" : keepTransparency ? "image/png" : "image/jpeg";
+  const lossless = type === "image/png";
+
+  let out = canvas.toDataURL(type, 0.78);
+  // Still too big? Drop quality, then size, until it fits.
+  for (let step = 0; !lossless && out.length * 0.75 > maxBytes && step < 4; step++) {
+    const quality = 0.7 - step * 0.12;
+    out = canvas.toDataURL(type, Math.max(0.35, quality));
+    if (out.length * 0.75 > maxBytes && step >= 1) {
+      const smaller = document.createElement("canvas");
+      smaller.width = Math.round(canvas.width * 0.8);
+      smaller.height = Math.round(canvas.height * 0.8);
+      smaller.getContext("2d")!.drawImage(canvas, 0, 0, smaller.width, smaller.height);
+      canvas.width = smaller.width;
+      canvas.height = smaller.height;
+      ctx.drawImage(smaller, 0, 0);
+    }
+  }
+  return out;
 }
 
 export async function dataUrlToBlob(dataUrl: string) {

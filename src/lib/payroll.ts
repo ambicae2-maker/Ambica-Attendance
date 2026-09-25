@@ -48,8 +48,12 @@ export function buildLedger(data: DriverData, until?: string, today = todayISO()
       // Frozen month. If an earlier (unlocked) month changed after this one was
       // locked, keep that difference in the carry instead of losing it.
       const drift = carry - (snap.snapshot.advanceOpening ?? 0);
+      // Money comes from the frozen snapshot; the calendar is rebuilt so the
+      // snapshot itself stays tiny in the database.
+      const live = calcMonth(data, month, carry, today, attendance, holidays);
       calc = {
         ...snap.snapshot,
+        days: snap.snapshot.days?.length ? snap.snapshot.days : live.days,
         locked: true,
         ...paymentFields(data, month, snap.snapshot.net, snap.snapshot.dueDate),
       };

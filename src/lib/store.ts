@@ -98,11 +98,20 @@ async function run(op: Op) {
     const up = await supabase.storage.from("media").upload(path, blob, { contentType: blob.type, cacheControl: "31536000" });
     if (up.error) throw up.error;
     const url = supabase.storage.from("media").getPublicUrl(path).data.publicUrl;
+
+    // Remember the old file so it can be removed once the new one is saved.
+    const previous = op.target === "logo"
+      ? (await supabase.from("company_settings").select("logo_url").eq("id", 1).maybeSingle()).data?.logo_url
+      : (await supabase.from("drivers").select("photo_url").eq("id", op.driverId!).maybeSingle()).data?.photo_url;
+
     const res =
       op.target === "logo"
         ? await supabase.from("company_settings").update({ logo_url: url }).eq("id", 1)
         : await supabase.from("drivers").update({ photo_url: url }).eq("id", op.driverId!);
     if (res.error) throw res.error;
+
+    const oldPath = typeof previous === "string" ? previous.split("/object/public/media/")[1] : null;
+    if (oldPath) await supabase.storage.from("media").remove([oldPath]).catch(() => undefined);
   }
 }
 
