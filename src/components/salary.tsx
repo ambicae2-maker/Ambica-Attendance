@@ -29,28 +29,31 @@ export function SalaryBreakdown({ calc, showPayments = true }: { calc: MonthCalc
           {calc.salaryChanged && <span className="ml-2 font-semibold text-gold-foreground dark:text-gold">· {t("salary_changed_mid")}</span>}
         </p>
       </div>
+      {/* What was earned. Leave is already taken off, so this is never negative. */}
       <div className="py-1">
-        <Row label={t("full_month_pay")} value={inr(calc.fullMonth)} />
-        {calc.absentDeduction > 0 && <Row label={t("absent_deduction", { n: calc.counts.absent })} value={neg(calc.absentDeduction)} muted />}
-        {calc.halfDeduction > 0 && <Row label={t("half_deduction", { n: calc.counts.half })} value={neg(calc.halfDeduction)} muted />}
-        {calc.pending > 0 && <Row label={t("pending_days", { n: calc.counts.upcoming })} value={neg(calc.pending)} muted />}
-        <Row label={t("basic_earned")} value={inr(calc.basicEarned)} strong />
+        <Row
+          label={calc.complete || calc.locked ? t("salary_earned") : t("salary_earned_so_far")}
+          value={inr(calc.basicEarned)}
+          strong
+        />
+        {calc.absentDeduction + calc.halfDeduction > 0 && (
+          <p className="-mt-1 pb-1 text-xs text-muted-foreground">
+            {t("leave_not_paid", { amt: inr(calc.absentDeduction + calc.halfDeduction) })}
+          </p>
+        )}
       </div>
-      {calc.bonus + calc.allowance + calc.overtime + calc.otherDeduction > 0 && (
+
+      {/* Extras: money given on top, or taken off */}
+      {calc.bonus + calc.allowance + calc.overtime + calc.otherDeduction + calc.advanceRecovered > 0 && (
         <div className="py-1">
           {calc.bonus > 0 && <Row label={t("bonus")} value={`+ ${inr(calc.bonus)}`} className="text-present-ink" />}
           {calc.allowance > 0 && <Row label={t("allowance")} value={`+ ${inr(calc.allowance)}`} className="text-present-ink" />}
           {calc.overtime > 0 && <Row label={t("overtime")} value={`+ ${inr(calc.overtime)}`} className="text-present-ink" />}
           {calc.deductionApplied > 0 && <Row label={t("deduction")} value={neg(calc.deductionApplied)} muted />}
+          {calc.advanceRecovered > 0 && <Row label={t("advance_recovered")} value={neg(calc.advanceRecovered)} muted />}
           {calc.deductionCarried > 0 && (
-            <Row label={t("deduction_carried")} value={inr(calc.deductionCarried)} muted className="text-half-ink" />
+            <p className="pb-1 text-xs text-half-ink">{t("deduction_carried_note", { amt: inr(calc.deductionCarried) })}</p>
           )}
-          <Row label={t("gross")} value={inr(calc.gross)} strong />
-        </div>
-      )}
-      {calc.advanceRecovered > 0 && (
-        <div className="py-1">
-          <Row label={t("advance_recovered")} value={neg(calc.advanceRecovered)} muted />
         </div>
       )}
       <div className="pt-2">
@@ -62,6 +65,7 @@ export function SalaryBreakdown({ calc, showPayments = true }: { calc: MonthCalc
           <div className="mt-2 px-1">
             <Row label={t("paid")} value={inr(calc.paid)} />
             {calc.due > 0 && <Row label={t("balance_due")} value={inr(calc.due)} strong className="text-brand" />}
+            {calc.overpaid > 0 && <p className="text-xs text-half-ink">{t("overpaid_note", { amt: inr(calc.overpaid) })}</p>}
           </div>
         )}
         <p className="mt-2 flex items-center gap-1.5 px-1 text-xs text-muted-foreground">

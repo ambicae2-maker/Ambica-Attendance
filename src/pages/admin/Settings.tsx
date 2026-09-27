@@ -127,10 +127,10 @@ export default function Settings() {
 
             <Section icon={<Palette className="size-5" />} title={t("appearance")}>
               <div className="space-y-4">
-                <Field label={t("language")}>
+                <Field label={t("language")} group>
                   <Segmented value={lang} onChange={setLang} options={LANGS.map((l) => ({ value: l.code, label: l.label }))} />
                 </Field>
-                <Field label={t("theme")}>
+                <Field label={t("theme")} group>
                   <Segmented<ThemePref>
                     value={theme}
                     onChange={setTheme}

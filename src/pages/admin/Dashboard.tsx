@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useDataset } from "@/lib/data";
 import { driverSlice } from "@/lib/store";
 import { buildLedger } from "@/lib/payroll";
-import { currentMonth, fmtDate, fmtMonth, shiftMonth } from "@/lib/dates";
+import { currentCycle, cycleLabel, DEFAULT_PAY_DAY, fmtDate, fmtMonth, shiftMonth } from "@/lib/dates";
 import { useToday } from "@/lib/today";
 import { cn, inr } from "@/lib/utils";
 import type { Dataset, Driver, MonthCalc } from "@/lib/types";
@@ -22,7 +22,7 @@ interface Row {
 export function useDriverRows(ds: Dataset | undefined, today?: string): Row[] {
   return useMemo(() => {
     if (!ds) return [];
-    const cur = currentMonth();
+    const cur = currentCycle(ds.company.pay_day ?? DEFAULT_PAY_DAY);
     const prev = shiftMonth(cur, -1);
     return ds.drivers.map((driver) => {
       const ledger = buildLedger(driverSlice(ds, driver.id)!, undefined, today);
@@ -51,7 +51,8 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows]);
 
-  const prevMonth = shiftMonth(currentMonth(), -1);
+  const payDay = ds?.company.pay_day ?? DEFAULT_PAY_DAY;
+  const prevMonth = shiftMonth(currentCycle(payDay), -1);
   const payroll = useMemo(() => {
     const list = rows.map((r) => r.previous).filter((m): m is MonthCalc => !!m && m.counts.employed > 0);
     return {
@@ -107,6 +108,8 @@ export default function Dashboard() {
               <div className="text-xs text-muted-foreground">
                 {t("paid_of", { paid: inr(payroll.paid), total: inr(payroll.net) })}
                 {payroll.dueDate && ` · ${t("due_on", { date: fmtDate(payroll.dueDate, lang) })}`}
+                {" · "}
+                {cycleLabel(prevMonth, payDay, lang)}
               </div>
             </div>
           </Card>

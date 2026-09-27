@@ -167,6 +167,7 @@ export interface MonthCalc {
   net: number; // gross − advance recovered
   paid: number;
   due: number; // net − paid (never below 0)
+  overpaid: number; // paid above the salary after the month ended — recovered next month
   payStatus: "paid" | "partial" | "unpaid" | "none";
   dueDate: string; // pay day of next month
 }

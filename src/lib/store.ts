@@ -78,6 +78,9 @@ export function initStore(client: QueryClient) {
 
 export const pendingCount = () => outbox.length;
 
+/** The app-wide query cache, for the few actions that refresh it directly. */
+export const queryClient = () => qc;
+
 const isNetworkError = (e: unknown) =>
   !navigator.onLine || /failed to fetch|networkerror|load failed|network request failed|fetch failed/i.test(errorMessage(e));
 

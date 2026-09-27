@@ -37,7 +37,9 @@ export default function Today() {
     const marks = new Map(ds.attendance.filter((a) => a.date === date).map((a) => [a.driver_id, a]));
     const lockedSet = new Set(ds.payroll_months.filter((p) => p.month === monthOf(date)).map((p) => p.driver_id));
     return ds.drivers
-      .filter((d) => d.joining_date <= date && (!d.left_on || date <= d.left_on))
+      // A driver who has left is not on the list from their leaving day onward.
+      // For earlier dates they still appear, so old attendance can be corrected.
+      .filter((d) => d.joining_date <= date && (d.left_on ? date < d.left_on : d.active))
       .map((d) => ({ driver: d, status: marks.get(d.id)?.status ?? defaultStatus, locked: lockedSet.has(d.id) }))
       .sort((a, b) => a.driver.name.localeCompare(b.driver.name));
   }, [ds, date, defaultStatus]);

@@ -1,17 +1,17 @@
 import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  CalendarDays, Copy, FileText, History, Link2, Lock, Pencil, Phone, Plus, RefreshCw, Share2, Trash2, Truck, Unlock, UserCheck, UserX, Wallet,
+  ArrowRightLeft, CalendarDays, CheckCircle2, Copy, FileText, History, Link2, Lock, Pencil, Phone, Plus, RefreshCw, RotateCcw, Share2, Trash2, Truck, Unlock, UserCheck, UserX, Wallet,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import {
-  addAdjustment, addPayment, changeSalary, deleteSalary, lockMonth, regenerateCode, removeAdjustment, removePayment, resetShareLink,
-  setAttendance, setDriverActive, useDataset, useDriverData,
+  addAdjustment, addPayment, changeSalary, clearPaymentsForMonth, deleteDriver, deleteSalary, lockMonth, movePayment, regenerateCode, removeAdjustment, removePayment,
+  resetShareLink, setAttendance, setDriverActive, useDataset, useDriverData,
 } from "@/lib/data";
 import { buildLedger, salaryOn, STATUS_ORDER } from "@/lib/payroll";
-import { currentMonth, dayDate, fmtDate, fmtMonth, monthOf, todayISO } from "@/lib/dates";
+import { currentCycle, cycleEnd, cycleLabel, cycleOf, cycleStart, DEFAULT_PAY_DAY, fmtDate, fmtMonth, shiftMonth, todayISO } from "@/lib/dates";
 import { useToday } from "@/lib/today";
 import { usePdfExport } from "@/lib/pdf";
 import { cn, errorMessage, inr } from "@/lib/utils";
@@ -49,9 +49,14 @@ function Profile({ data }: { data: DriverData }) {
   const confirm = useConfirm();
   const { data: ds } = useDataset();
   const { driver } = data;
-  const [month, setMonth] = useState(currentMonth());
+  const nav = useNavigate();
+  const { data: dataset } = useDataset();
+  const payDay = dataset?.company.pay_day ?? DEFAULT_PAY_DAY;
+  const [month, setMonth] = useState(currentCycle(payDay));
   const [dayOpen, setDayOpen] = useState<DayInfo | null>(null);
   const [sheet, setSheet] = useState<null | "extra" | "payment" | "salary">(null);
+  const [moving, setMoving] = useState<{ id: string; month: string } | null>(null);
+  const [payingAll, setPayingAll] = useState(false);
   const { exportPdf, busy: pdfBusy, holder } = usePdfExport();
 
   const today = useToday();
@@ -59,9 +64,9 @@ function Profile({ data }: { data: DriverData }) {
   const calc = ledger.find((m) => m.month === month) ?? ledger[ledger.length - 1];
   const trend = ledger.slice(-6);
   const locked = calc.locked;
-  const minMonth = monthOf(driver.joining_date);
+  const minMonth = cycleOf(driver.joining_date, payDay);
 
-  const monthAdjustments = data.adjustments.filter((a) => a.month === calc.month).sort((a, b) => a.date.localeCompare(b.date));
+  const monthAdjustments = data.adjustments.filter((a) => cycleOf(a.date, data.company?.pay_day ?? DEFAULT_PAY_DAY) === calc.month).sort((a, b) => a.date.localeCompare(b.date));
   const monthPayments = data.payments.filter((p) => p.month === calc.month).sort((a, b) => a.paid_on.localeCompare(b.paid_on));
   const salaries = [...data.salary_history].sort((a, b) => b.effective_from.localeCompare(a.effective_from));
   const currentSalary = salaryOn(data.salary_history, today);
@@ -109,6 +114,25 @@ function Profile({ data }: { data: DriverData }) {
     if (!(await confirm({ title: t("regenerate_id"), message: t("regenerate_confirm"), danger: true }))) return;
     const code = await regenerateCode(driver.id);
     toast.success(t("id_changed", { code }));
+  };
+
+  const onDeleteForever = async () => {
+    const ok = await confirm({
+      title: t("delete_driver"),
+      message: t("delete_driver_confirm", { name: driver.name }),
+      confirmLabel: t("delete_driver"),
+      danger: true,
+    });
+    if (!ok) return;
+    const sure = await confirm({ title: t("delete_driver_sure"), message: t("delete_driver_sure_msg"), confirmLabel: t("delete"), danger: true });
+    if (!sure) return;
+    try {
+      await deleteDriver(driver);
+      toast.success(t("driver_deleted", { name: driver.name }));
+      nav("/admin", { replace: true });
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
   };
 
   const onToggleActive = async () => {
@@ -175,11 +199,18 @@ function Profile({ data }: { data: DriverData }) {
             <button onClick={onToggleActive} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-white/70 hover:bg-white/10">
               {driver.active ? <><UserX className="size-4" /> {t("deactivate")}</> : <><UserCheck className="size-4" /> {t("reactivate")}</>}
             </button>
+            <button
+              onClick={onDeleteForever}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-white/60 transition hover:bg-danger/20 hover:text-white"
+              title={t("delete_driver")}
+            >
+              <Trash2 className="size-4" /> {t("delete_driver")}
+            </button>
           </div>
         </Card>
 
         <div className="sticky top-[61px] z-20 -mx-1 px-1 pt-1">
-          <MonthSwitcher month={calc.month} onChange={setMonth} min={minMonth} locked={locked} />
+          <MonthSwitcher month={calc.month} onChange={setMonth} min={minMonth} max={currentCycle(payDay)} locked={locked} payDay={payDay} />
         </div>
 
         <div className="grid gap-5 lg:grid-cols-5 2xl:grid-cols-3">
@@ -201,6 +232,59 @@ function Profile({ data }: { data: DriverData }) {
               </div>
               <div className="mt-5">
                 <StatusTiles calc={calc} />
+              </div>
+
+              {/* Paid / unpaid for this month, and what is still left to pay */}
+              <div
+                data-testid="pay-box"
+                data-status={calc.payStatus}
+                className={cn(
+                  "mt-4 flex flex-col gap-3 rounded-xl border-2 p-4 sm:flex-row sm:items-center",
+                  calc.payStatus === "paid" ? "border-present/50 bg-present-soft/60" : "border-brand/30 bg-brand/5",
+                )}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <PayStatusBadge calc={calc} />
+                    <span className="text-xs text-muted-foreground">{fmtMonth(calc.month, lang)}</span>
+                  </div>
+                  {calc.payStatus === "paid" ? (
+                    <div className="mt-1 text-sm font-semibold text-present-ink">
+                      {t("paid_in_full", { amt: inr(calc.paid) })}
+                    </div>
+                  ) : (
+                    <div className="mt-1">
+                      <span className="text-xs text-muted-foreground">{t("remaining_to_pay")}</span>
+                      <div data-testid="remaining" data-value={calc.due} className="font-display text-2xl font-bold tabular text-brand">
+                        {inr(calc.due)}
+                      </div>
+                      {calc.paid > 0 && <div className="text-xs text-muted-foreground">{t("paid_of", { paid: inr(calc.paid), total: inr(calc.net) })}</div>}
+                    </div>
+                  )}
+                  {!calc.complete && !locked && calc.due > 0 && <p className="mt-1 text-[11px] text-muted-foreground">{t("month_running_hint")}</p>}
+                </div>
+                <div className="flex gap-2">
+                  {calc.due > 0 && (
+                    <Button onClick={() => setPayingAll(true)}>
+                      <CheckCircle2 className="size-4" /> {t("mark_paid")}
+                    </Button>
+                  )}
+                  {calc.paid > 0 && (
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: t("mark_unpaid"),
+                          message: t("mark_unpaid_confirm", { amt: inr(calc.paid), month: fmtMonth(calc.month, lang) }),
+                          danger: true,
+                        });
+                        if (ok) notifySaved(t, await clearPaymentsForMonth(driver.id, calc.month));
+                      }}
+                    >
+                      <RotateCcw className="size-4" /> {t("mark_unpaid")}
+                    </Button>
+                  )}
+                </div>
               </div>
             </Card>
 
@@ -314,6 +398,14 @@ function Profile({ data }: { data: DriverData }) {
                         </div>
                       </div>
                       <div className="font-semibold tabular">{inr(p.amount)}</div>
+                      <button
+                        onClick={() => setMoving({ id: p.id, month: p.month })}
+                        className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        aria-label={t("move_payment")}
+                        title={t("move_payment")}
+                      >
+                        <ArrowRightLeft className="size-4" />
+                      </button>
                       <button onClick={async () => notifySaved(t, await removePayment(p.id))} className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-danger" aria-label={t("delete")}>
                         <Trash2 className="size-4" />
                       </button>
@@ -367,7 +459,9 @@ function Profile({ data }: { data: DriverData }) {
 
       {dayOpen && ds && <DaySheet day={dayOpen} driverId={driver.id} onClose={() => setDayOpen(null)} dsHolidays={ds} />}
       <ExtraSheet open={sheet === "extra"} onClose={() => setSheet(null)} data={data} calc={calc} />
-      <PaymentSheet open={sheet === "payment"} onClose={() => setSheet(null)} driverId={driver.id} calc={calc} />
+      <PaymentSheet open={sheet === "payment"} onClose={() => setSheet(null)} driverId={driver.id} calc={calc} ledger={ledger} payDay={payDay} />
+      {moving && <MovePaymentSheet moving={moving} onClose={() => setMoving(null)} ledger={ledger} payDay={payDay} />}
+      {payingAll && <MarkPaidSheet driverId={driver.id} calc={calc} onClose={() => setPayingAll(false)} />}
       <SalarySheet open={sheet === "salary"} onClose={() => setSheet(null)} driverId={driver.id} />
       {holder}
     </>
@@ -434,9 +528,9 @@ export function StatusPicker({ value, onChange }: { value: DayStatus; onChange: 
 // ── Extras / deductions / advance ───────────────────────────
 const KINDS: AdjustmentKind[] = ["bonus", "allowance", "overtime", "deduction", "advance"];
 
-function defaultDateFor(month: string) {
+function defaultDateFor(month: string, payDay: number) {
   const today = todayISO();
-  return monthOf(today) === month ? today : dayDate(month, 1);
+  return cycleOf(today, payDay) === month ? today : cycleStart(month, payDay);
 }
 
 function ExtraSheet({ open, onClose, data, calc }: { open: boolean; onClose: () => void; data: DriverData; calc: MonthCalc }) {
@@ -446,7 +540,8 @@ function ExtraSheet({ open, onClose, data, calc }: { open: boolean; onClose: () 
   const [qty, setQty] = useState("");
   const [rate, setRate] = useState("");
   const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(defaultDateFor(calc.month));
+  const payDay = data.company?.pay_day ?? DEFAULT_PAY_DAY;
+  const [date, setDate] = useState(defaultDateFor(calc.month, payDay));
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -455,17 +550,17 @@ function ExtraSheet({ open, onClose, data, calc }: { open: boolean; onClose: () 
   const total = kind === "overtime" ? Math.round((Number(qty) || 0) * effRate) : Number(amount) || 0;
 
   const reset = () => {
-    setQty(""); setRate(""); setAmount(""); setNote(""); setDate(defaultDateFor(calc.month));
+    setQty(""); setRate(""); setAmount(""); setNote(""); setDate(defaultDateFor(calc.month, payDay));
   };
 
   const save = async () => {
     if (total <= 0) return;
-    if (monthOf(date) !== calc.month) setDate(defaultDateFor(calc.month));
+    if (cycleOf(date, payDay) !== calc.month) setDate(defaultDateFor(calc.month, payDay));
     setBusy(true);
     try {
       const synced = await addAdjustment({
         driver_id: data.driver.id,
-        date: monthOf(date) === calc.month ? date : defaultDateFor(calc.month),
+        date: cycleOf(date, payDay) === calc.month ? date : defaultDateFor(calc.month, payDay),
         kind,
         unit: kind === "overtime" ? unit : null,
         quantity: kind === "overtime" ? Number(qty) : null,
@@ -513,7 +608,7 @@ function ExtraSheet({ open, onClose, data, calc }: { open: boolean; onClose: () 
 
         {kind === "overtime" ? (
           <>
-            <Field label={t("overtime_by")}>
+            <Field label={t("overtime_by")} group>
               <Segmented value={unit} onChange={(u) => { setUnit(u); setRate(""); }} options={[{ value: "hour", label: t("per_hour") }, { value: "day", label: t("per_day") }]} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
@@ -531,7 +626,7 @@ function ExtraSheet({ open, onClose, data, calc }: { open: boolean; onClose: () 
           </Field>
         )}
         <Field label={t("date")}>
-          <Input type="date" value={date} min={calc.days[0].date} max={calc.days[calc.days.length - 1].date} onChange={(e) => setDate(e.target.value)} />
+          <Input type="date" value={date} min={cycleStart(calc.month, payDay)} max={cycleEnd(calc.month, payDay)} onChange={(e) => setDate(e.target.value)} />
         </Field>
         <Field label={t("note")} optional>
           <Input value={note} onChange={(e) => setNote(e.target.value)} />
@@ -544,21 +639,151 @@ function ExtraSheet({ open, onClose, data, calc }: { open: boolean; onClose: () 
 // ── Payment ─────────────────────────────────────────────────
 const MODES: PaymentMode[] = ["cash", "upi", "bank", "cheque"];
 
-function PaymentSheet({ open, onClose, driverId, calc }: { open: boolean; onClose: () => void; driverId: string; calc: MonthCalc }) {
+/** One tap: records a payment of exactly what is left for this month. */
+function MarkPaidSheet({ driverId, calc, onClose }: { driverId: string; calc: MonthCalc; onClose: () => void }) {
+  const { t, lang } = useI18n();
+  const [mode, setMode] = useState<PaymentMode>("cash");
+  const [paidOn, setPaidOn] = useState(todayISO());
+  const [reference, setReference] = useState("");
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    setBusy(true);
+    try {
+      const synced = await addPayment({
+        driver_id: driverId,
+        month: calc.month,
+        amount: calc.due,
+        mode,
+        reference: reference.trim() || null,
+        paid_on: paidOn,
+        note: null,
+      });
+      notifySaved(t, synced, t("marked_paid", { month: fmtMonth(calc.month, lang) }));
+      onClose();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Sheet
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={t("mark_paid_title", { month: fmtMonth(calc.month, lang) })}
+      description={t("mark_paid_hint", { amt: inr(calc.due) })}
+      footer={
+        <Button className="w-full" size="lg" onClick={save} loading={busy}>
+          <CheckCircle2 className="size-4" /> {t("mark_paid")} · {inr(calc.due)}
+        </Button>
+      }
+    >
+      <div className="space-y-4">
+        <Field label={t("mode")} group>
+          <div className="grid grid-cols-2 gap-2">
+            {(["cash", "upi", "bank", "cheque"] as PaymentMode[]).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                className={cn("h-12 rounded-xl border-2 text-sm font-bold transition", mode === m ? "border-brand bg-brand/10 text-brand" : "border-border bg-card")}
+              >
+                {t(`mode_${m}`)}
+              </button>
+            ))}
+          </div>
+        </Field>
+        {mode !== "cash" && (
+          <Field label={t("reference")} optional>
+            <Input value={reference} onChange={(e) => setReference(e.target.value)} />
+          </Field>
+        )}
+        <Field label={t("paid_on")}>
+          <Input type="date" value={paidOn} onChange={(e) => setPaidOn(e.target.value)} />
+        </Field>
+      </div>
+    </Sheet>
+  );
+}
+
+/** Salary is paid on the 5th for the month that just ended, so that is the usual choice. */
+function defaultSalaryMonth(calc: MonthCalc, ledger: MonthCalc[]) {
+  if (calc.complete || calc.locked) return calc.month;
+  const previous = shiftMonth(calc.month, -1);
+  return ledger.some((m) => m.month === previous) ? previous : calc.month;
+}
+
+function MonthPicker({ value, onChange, ledger, payDay }: { value: string; onChange: (m: string) => void; ledger: MonthCalc[]; payDay: number }) {
+  const { t, lang } = useI18n();
+  return (
+    <Field label={t("salary_for")}>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-11 w-full rounded-lg border border-input bg-card px-3.5 text-[15px] text-foreground outline-none focus:border-brand focus:ring-3 focus:ring-brand/15"
+      >
+        {[...ledger].reverse().map((m) => (
+          <option key={m.month} value={m.month}>
+            {fmtMonth(m.month, lang)} ({cycleLabel(m.month, payDay, lang)}){m.due > 0 ? ` · ${t("balance_due")} ${inr(m.due)}` : ""}
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
+}
+
+function MovePaymentSheet({ moving, onClose, ledger, payDay }: { moving: { id: string; month: string }; onClose: () => void; ledger: MonthCalc[]; payDay: number }) {
+  const { t, lang } = useI18n();
+  const [month, setMonth] = useState(moving.month);
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    setBusy(true);
+    try {
+      notifySaved(t, await movePayment(moving.id, month), t("payment_moved", { month: fmtMonth(month, lang) }));
+      onClose();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Sheet
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={t("move_payment")}
+      description={t("move_payment_hint")}
+      footer={<Button className="w-full" size="lg" onClick={save} loading={busy} disabled={month === moving.month}>{t("save")}</Button>}
+    >
+      <MonthPicker value={month} onChange={setMonth} ledger={ledger} payDay={payDay} />
+    </Sheet>
+  );
+}
+
+function PaymentSheet({ open, onClose, driverId, calc, ledger, payDay }: {
+  open: boolean;
+  onClose: () => void;
+  driverId: string;
+  calc: MonthCalc;
+  ledger: MonthCalc[];
+  payDay: number;
+}) {
   const { t } = useI18n();
+  const [salaryMonth, setSalaryMonth] = useState(() => defaultSalaryMonth(calc, ledger));
+  const target = ledger.find((m) => m.month === salaryMonth) ?? calc;
   const [amount, setAmount] = useState("");
   const [mode, setMode] = useState<PaymentMode>("cash");
   const [reference, setReference] = useState("");
   const [paidOn, setPaidOn] = useState(todayISO());
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
-  const value = amount === "" ? calc.due : Number(amount);
+  const value = amount === "" ? target.due : Number(amount);
 
   const save = async () => {
     if (!(value > 0)) return;
     setBusy(true);
     try {
-      notifySaved(t, await addPayment({ driver_id: driverId, month: calc.month, amount: value, mode, reference: reference.trim() || null, paid_on: paidOn, note: note.trim() || null }));
+      notifySaved(t, await addPayment({ driver_id: driverId, month: salaryMonth, amount: value, mode, reference: reference.trim() || null, paid_on: paidOn, note: note.trim() || null }));
       setAmount(""); setReference(""); setNote("");
       onClose();
     } catch (e) {
@@ -573,14 +798,15 @@ function PaymentSheet({ open, onClose, driverId, calc }: { open: boolean; onClos
       open={open}
       onOpenChange={(o) => !o && onClose()}
       title={t("add_payment")}
-      description={`${t("balance_due")}: ${inr(calc.due)}`}
+      description={`${t("balance_due")}: ${inr(target.due)}`}
       footer={<Button className="w-full" size="lg" onClick={save} loading={busy} disabled={!(value > 0)}><Wallet className="size-4" /> {t("save")} · {inr(value || 0)}</Button>}
     >
       <div className="space-y-4">
+        <MonthPicker value={salaryMonth} onChange={(m) => { setSalaryMonth(m); setAmount(""); }} ledger={ledger} payDay={payDay} />
         <Field label={t("amount")}>
-          <MoneyInput value={amount} onChange={setAmount} placeholder={String(calc.due)} />
+          <MoneyInput value={amount} onChange={setAmount} placeholder={String(target.due)} />
         </Field>
-        <Field label={t("mode")}>
+        <Field label={t("mode")} group>
           <div className="grid grid-cols-2 gap-2">
             {MODES.map((m) => (
               <button

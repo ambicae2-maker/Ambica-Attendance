@@ -21,8 +21,18 @@ import Holidays from "@/pages/admin/Holidays";
 import Settings from "@/pages/admin/Settings";
 import DriverHome from "@/pages/driver/DriverHome";
 import { seed } from "./ui-test-seed";
+import { SalaryStatement, AttendanceReport } from "@/components/documents";
+import { monthFor } from "@/lib/payroll";
+import { driverSlice as slice } from "@/lib/store";
 
 applyTheme();
+
+/** Renders a printable document for the month in ?m= (only when that route is opened). */
+function Doc({ kind }: { kind: "slip" | "report" }) {
+  const data = slice(ds, "d-a")!;
+  const calc = monthFor(data, new URLSearchParams(location.search).get("m") ?? "2026-09-01");
+  return <div style={{ width: 794 }}>{kind === "slip" ? <SalaryStatement data={data} calc={calc} /> : <AttendanceReport data={data} calc={calc} />}</div>;
+}
 const params = new URLSearchParams(location.search);
 const ds = seed();
 
@@ -47,6 +57,8 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/admin/drivers/:id" element={<AdminShell><DriverProfile /></AdminShell>} />
               <Route path="/admin/drivers/:id/edit" element={<AdminShell><DriverForm /></AdminShell>} />
               <Route path="/me" element={<DriverHome />} />
+              <Route path="/doc/slip" element={<Doc kind="slip" />} />
+              <Route path="/doc/report" element={<Doc kind="report" />} />
             </Routes>
           </MemoryRouter>
           <Toaster position="top-center" richColors />

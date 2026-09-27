@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { usePortal } from "@/lib/data";
 import { NotFoundError, useSyncState } from "@/lib/store";
 import { buildLedger, dayPay } from "@/lib/payroll";
-import { currentMonth, fmtDate, fmtMonth, monthOf } from "@/lib/dates";
+import { currentCycle, cycleOf, DEFAULT_PAY_DAY, fmtDate, fmtMonth } from "@/lib/dates";
 import { usePdfExport } from "@/lib/pdf";
 import { useToday } from "@/lib/today";
 import { cn, inr } from "@/lib/utils";
@@ -21,7 +21,7 @@ export default function DriverHome() {
   const { driverCode, signOut } = useAuth();
   const { online } = useSyncState();
   const q = usePortal(driverCode);
-  const [month, setMonth] = useState(currentMonth());
+  const [month, setMonth] = useState(() => currentCycle(DEFAULT_PAY_DAY));
   const { exportPdf, busy, holder } = usePdfExport();
 
   const today = useToday();
@@ -50,7 +50,8 @@ export default function DriverHome() {
   const data = q.data;
   const { driver } = data;
   const calc = ledger.find((m) => m.month === month) ?? ledger[ledger.length - 1];
-  const isCurrent = calc.month === currentMonth();
+  const payDay = data.company?.pay_day ?? DEFAULT_PAY_DAY;
+  const isCurrent = calc.month === currentCycle(payDay);
   const todayDay = calc.days.find((d) => d.date === today);
   const todayEarned = todayDay ? Math.round(dayPay(todayDay)) : 0;
   const payments = data.payments.filter((p) => p.month === calc.month);
@@ -114,7 +115,14 @@ export default function DriverHome() {
           </button>
         </div>
 
-        <MonthSwitcher month={calc.month} onChange={setMonth} min={monthOf(driver.joining_date)} locked={calc.locked} />
+        <MonthSwitcher
+          month={calc.month}
+          onChange={setMonth}
+          min={cycleOf(driver.joining_date, payDay)}
+          max={currentCycle(payDay)}
+          locked={calc.locked}
+          payDay={payDay}
+        />
         <StatusTiles calc={calc} />
 
         <Card className="p-5">

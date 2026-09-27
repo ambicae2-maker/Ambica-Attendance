@@ -73,24 +73,27 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
 ));
 Select.displayName = "Select";
 
-export function Field({ label, hint, error, optional, children, className }: {
+export function Field({ label, hint, error, optional, children, className, group }: {
   label: string;
   hint?: string;
   error?: string;
   optional?: boolean;
   children: ReactNode;
   className?: string;
+  /** set for a row of buttons: a <label> would give the first button a confusing name */
+  group?: boolean;
 }) {
   const { t } = useI18n();
+  const Tag = group ? "div" : "label";
   return (
-    <label className={cn("block space-y-1.5", className)}>
+    <Tag className={cn("block space-y-1.5", className)} {...(group ? { role: "group", "aria-label": label } : {})}>
       <span className="text-sm font-semibold text-foreground">
         {label}
         {optional && <span className="ml-1 font-normal text-muted-foreground">({t("optional")})</span>}
       </span>
       {children}
       {error ? <span className="block text-xs text-danger">{error}</span> : hint && <span className="block text-xs text-muted-foreground">{hint}</span>}
-    </label>
+    </Tag>
   );
 }
 

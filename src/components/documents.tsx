@@ -3,7 +3,7 @@
  * Colors come from the same tokens as the app.
  */
 import type { ReactNode } from "react";
-import { firstWeekday, fmtDate, fmtMonth, todayISO } from "@/lib/dates";
+import { cycleEnd, cycleOf, cycleStart, DEFAULT_PAY_DAY, firstWeekday, fmtDate, fmtMonth, todayISO } from "@/lib/dates";
 import { cn, inr } from "@/lib/utils";
 import type { Adjustment, DayStatus, DriverData, MonthCalc } from "@/lib/types";
 import { STATUS_STYLES } from "./ui";
@@ -12,23 +12,24 @@ const STATUS_LABEL: Record<DayStatus, string> = { present: "Present", half: "Hal
 const MODE_LABEL: Record<string, string> = { cash: "Cash", upi: "UPI", bank: "Bank transfer", cheque: "Cheque" };
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function DocHeader({ data, title, month }: { data: DriverData; title: string; month: string }) {
+function DocHeader({ data, title, month, period }: { data: DriverData; title: string; month: string; period?: string }) {
   const c = data.company;
   return (
-    <div className="flex items-start justify-between gap-6 bg-ink px-10 py-8 text-ink-foreground">
+    <div className="flex items-start justify-between gap-6 border-b-2 border-brand px-10 pb-6 pt-8">
       <div className="flex items-center gap-4">
-        <img src={c.logo_url || "/logo.png"} crossOrigin="anonymous" alt="" className="size-16 rounded-lg bg-white object-contain" />
+        <img src={c.logo_url || "/logo.png"} crossOrigin="anonymous" alt="" className="size-16 object-contain" />
         <div>
-          <div className="font-display text-2xl font-bold">{c.name}</div>
-          {c.address && <div className="mt-1 max-w-sm whitespace-pre-line text-[12px] leading-snug opacity-80">{c.address}</div>}
-          <div className="mt-1 text-[12px] opacity-80">
+          <div className="font-display text-2xl font-bold text-foreground">{c.name}</div>
+          {c.address && <div className="mt-0.5 max-w-sm whitespace-pre-line text-[12px] leading-snug text-muted-foreground">{c.address}</div>}
+          <div className="mt-0.5 text-[12px] text-muted-foreground">
             {[c.gst_number && `GSTIN: ${c.gst_number}`, c.phone, c.email].filter(Boolean).join("  ·  ")}
           </div>
         </div>
       </div>
       <div className="text-right">
-        <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-gold">{title}</div>
-        <div className="mt-1 font-display text-xl font-bold">{fmtMonth(month)}</div>
+        <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-brand">{title}</div>
+        <div className="mt-1 font-display text-xl font-bold text-foreground">{fmtMonth(month)}</div>
+        {period && <div className="text-[12px] text-muted-foreground">{period}</div>}
       </div>
     </div>
   );
@@ -98,26 +99,6 @@ function Counts({ calc }: { calc: MonthCalc }) {
   );
 }
 
-function Table({ title, rows, total }: { title: string; rows: [string, number][]; total: [string, number] }) {
-  return (
-    <div className="flex-1 overflow-hidden rounded-xl border">
-      <div className="bg-muted px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{title}</div>
-      <div className="divide-y px-4">
-        {rows.length === 0 && <div className="py-2 text-[13px] text-muted-foreground">—</div>}
-        {rows.map(([k, v]) => (
-          <div key={k} className="flex justify-between py-2 text-[13px]">
-            <span>{k}</span>
-            <span className="tabular font-semibold">{inr(v)}</span>
-          </div>
-        ))}
-      </div>
-      <div className="flex justify-between border-t bg-muted/60 px-4 py-2.5 text-[13px] font-bold">
-        <span>{total[0]}</span>
-        <span className="tabular">{inr(total[1])}</span>
-      </div>
-    </div>
-  );
-}
 
 // Indian number to words (for "Rupees ... only")
 const ONES = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
@@ -145,11 +126,6 @@ export function inWords(n: number) {
   return parts.join(" ");
 }
 
-/** One line per kind: shows the detail when there is a single entry, otherwise a count. */
-function labelFor(adj: Adjustment[], kind: string, base: string) {
-  const rows = adj.filter((a) => a.kind === kind);
-  return rows.length === 1 ? extraLabel(rows[0]) : `${base} (${rows.length} entries)`;
-}
 
 function extraLabel(a: Adjustment) {
   const base = { bonus: "Bonus", allowance: "Allowance", overtime: "Overtime", deduction: "Deduction", advance: "Advance" }[a.kind];
@@ -172,131 +148,197 @@ function Footer() {
   );
 }
 
-// ── Salary slip ─────────────────────────────────────────────
-export function SalarySlip({ data, calc }: { data: DriverData; calc: MonthCalc }) {
-  const adj = data.adjustments.filter((a) => a.month === calc.month);
+// ── Salary statement — white, step by step, easy for a driver to follow ──
+const paise = (n: number) =>
+  "₹" + n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/** 29.5 → "29½ days", 0.5 → "½ day", 1 → "1 day" */
+const dayWord = (n: number) => {
+  const whole = Math.floor(n);
+  const half = n - whole >= 0.5;
+  const shown = half ? (whole ? `${whole}½` : "½") : String(whole);
+  return `${shown} day${n === 1 || n === 0.5 ? "" : "s"}`;
+};
+
+export function SalaryStatement({ data, calc, payDay = DEFAULT_PAY_DAY }: { data: DriverData; calc: MonthCalc; payDay?: number }) {
+  const cycle = (date: string) => cycleOf(date, data.company?.pay_day ?? payDay);
+  const adj = data.adjustments.filter((a) => cycle(a.date) === calc.month).sort((a, b) => a.date.localeCompare(b.date));
   const payments = data.payments.filter((p) => p.month === calc.month).sort((a, b) => a.paid_on.localeCompare(b.paid_on));
+  const d = data.driver;
 
-  const days = (n: number) => `${n} day${n === 1 ? "" : "s"}`;
-  const notEmployed = calc.daysInMonth - calc.counts.employed;
+  const from = cycleStart(calc.month, payDay);
+  const to = cycleEnd(calc.month, payDay);
+  const running = !calc.complete && !calc.locked;
+  const n = calc.daysInMonth;
 
-  // Every printed row comes from the engine's rounded figures, so the two
-  // columns always agree and Earnings − Deductions equals the net exactly.
-  const basicLabel = notEmployed
-    ? `Basic salary (${days(calc.counts.employed)} employed of ${calc.daysInMonth})`
-    : "Basic salary (full month)";
-  const earnings: [string, number][] = [[basicLabel, calc.fullMonth]];
-  if (calc.bonus) earnings.push([labelFor(adj, "bonus", "Bonus"), calc.bonus]);
-  if (calc.allowance) earnings.push([labelFor(adj, "allowance", "Allowance"), calc.allowance]);
-  if (calc.overtime) earnings.push([labelFor(adj, "overtime", "Overtime"), calc.overtime]);
-  const totalEarnings = calc.fullMonth + calc.bonus + calc.allowance + calc.overtime;
+  // the days that are paid, and the days that are not
+  const daysPaid = calc.counts.present + calc.counts.holiday + calc.counts.half * 0.5;
+  const onJob = calc.counts.employed;
+  const notOnJob = n - onJob;
+  const perDay = calc.monthlySalary / n;
 
-  const deductions: [string, number][] = [];
-  if (calc.absentDeduction) deductions.push([`Absent (${days(calc.counts.absent)})`, calc.absentDeduction]);
-  if (calc.halfDeduction) deductions.push([`Half days (${calc.counts.half})`, calc.halfDeduction]);
-  if (calc.pending) deductions.push([`Days not yet worked (${calc.counts.upcoming})`, calc.pending]);
-  if (calc.deductionApplied) deductions.push([labelFor(adj, "deduction", "Deduction"), calc.deductionApplied]);
-  if (calc.advanceRecovered) deductions.push(["Advance recovered", calc.advanceRecovered]);
-  const totalDeductions = deductions.reduce((s, [, v]) => s + v, 0);
+  const extrasPlus = adj.filter((a) => a.kind === "bonus" || a.kind === "allowance" || a.kind === "overtime");
+  const extrasMinus = adj.filter((a) => a.kind === "deduction");
+  const advances = adj.filter((a) => a.kind === "advance");
 
+  const balance = calc.due;
+  const fullyPaid = balance === 0 && calc.net > 0;
+
+  const Step = ({ no, text, sub, amount, strong }: { no?: number | string; text: string; sub?: string; amount: string; strong?: boolean }) => (
+    <tr className={cn("border-b border-border/70", strong && "bg-muted/50")}>
+      <td className="w-9 py-3 pl-1 align-top text-[12px] font-bold text-muted-foreground">{no ?? ""}</td>
+      <td className="py-3 pr-4 align-top">
+        <div className={cn("text-[13px]", strong ? "font-bold" : "font-medium")}>{text}</div>
+        {sub && <div className="mt-0.5 text-[11.5px] text-muted-foreground">{sub}</div>}
+      </td>
+      <td className={cn("py-3 pr-1 text-right align-top tabular text-[13px]", strong ? "font-bold" : "font-semibold")}>{amount}</td>
+    </tr>
+  );
+
+  // how many days are being paid, in words a driver understands
+  const daysExplained = [
+    notOnJob > 0 && d.joining_date > from ? `joined on ${fmtDate(d.joining_date)}` : "",
+    notOnJob > 0 && d.left_on && d.left_on < to ? `left on ${fmtDate(d.left_on)}` : "",
+    calc.counts.absent ? `${dayWord(calc.counts.absent)} leave` : "",
+    calc.counts.half ? `${dayWord(calc.counts.half * 0.5)} for ${calc.counts.half} half day${calc.counts.half === 1 ? "" : "s"}` : "",
+    running && calc.counts.upcoming ? `${dayWord(calc.counts.upcoming)} still to come` : "",
+  ].filter(Boolean);
+
+  let step = 0;
   return (
     <div className="flex min-h-[1123px] flex-col bg-white font-sans text-foreground">
-      <DocHeader data={data} title="Salary slip" month={calc.month} />
-      <DriverBlock data={data} calc={calc} />
-      <div className="space-y-5 px-10 py-6">
-        <Counts calc={calc} />
-        <div className="text-[12px] text-muted-foreground">
-          Monthly salary {inr(calc.monthlySalary)} · {calc.daysInMonth} days · {inr(calc.dailyRate)} per day
-          {calc.salaryChanged && " · salary revised during this month (calculated day-wise)"}
-        </div>
-        <div className="flex gap-4">
-          <Table title="Earnings" rows={earnings} total={["Total earnings", totalEarnings]} />
-          <Table title="Deductions" rows={deductions} total={["Total deductions", totalDeductions]} />
-        </div>
+      <DocHeader data={data} title="Salary statement" month={calc.month} period={`${fmtDate(from)} – ${fmtDate(to)}`} />
 
-        <div className="flex items-center justify-between rounded-xl bg-brand px-6 py-4 text-brand-foreground">
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider opacity-80">Net pay</div>
-            <div className="text-[12px] opacity-90">Rupees {inWords(calc.net)} only</div>
+      {/* Driver */}
+      <div className="mx-10 mt-6 grid grid-cols-4 gap-x-6 gap-y-3 rounded-xl border bg-muted/40 px-6 py-4">
+        {[
+          ["Driver", d.name],
+          ["Truck", d.truck_number],
+          ["Phone", d.phone],
+          ["Joined", fmtDate(d.joining_date)],
+        ].map(([k, v]) => (
+          <div key={k}>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{k}</div>
+            <div className="mt-0.5 text-[13px] font-semibold">{v || "—"}</div>
           </div>
-          <div className="font-display text-3xl font-bold tabular">{inr(calc.net)}</div>
-        </div>
+        ))}
+      </div>
 
-        <div className="flex gap-4">
-          <div className="flex-[1.4] overflow-hidden rounded-xl border">
-            <div className="bg-muted px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Payment details</div>
-            {payments.length === 0 ? (
-              <div className="px-4 py-3 text-[13px] text-muted-foreground">Not paid yet · due on {fmtDate(calc.dueDate)}</div>
+      <div className="px-10 pt-6">
+        <h2 className="mb-2 text-[12px] font-bold uppercase tracking-wider text-muted-foreground">How your salary is worked out</h2>
+        <table className="w-full border-collapse">
+          <tbody>
+            <Step no={++step} text="Monthly salary" amount={inr(calc.monthlySalary)} />
+            <Step no={++step} text={`Days in this salary month (${fmtDate(from)} – ${fmtDate(to)})`} amount={`${n} days`} />
+            {calc.salaryChanged ? (
+              <Step no={++step} text="Pay for one day" sub="Your salary changed during this month, so each day is paid at the salary on that day." amount="—" />
             ) : (
-              <table className="w-full text-[12px]">
-                <thead className="text-left text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-2 font-semibold">Date</th>
-                    <th className="py-2 font-semibold">Mode</th>
-                    <th className="py-2 font-semibold">Reference</th>
-                    <th className="px-4 py-2 text-right font-semibold">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y border-t">
-                  {payments.map((p) => (
-                    <tr key={p.id}>
-                      <td className="px-4 py-2">{fmtDate(p.paid_on)}</td>
-                      <td className="py-2 font-semibold">{MODE_LABEL[p.mode]}</td>
-                      <td className="py-2">{p.reference || "—"}</td>
-                      <td className="px-4 py-2 text-right tabular font-semibold">{inr(p.amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <Step no={++step} text="Pay for one day" sub={`${inr(calc.monthlySalary)} ÷ ${n} days`} amount={paise(perDay)} />
             )}
-            <div className="flex justify-between border-t bg-muted/60 px-4 py-2 text-[12px] font-bold">
-              <span>Paid {inr(calc.paid)}</span>
-              <span className={calc.due > 0 ? "text-brand" : "text-present-ink"}>
-                {calc.due > 0 ? `Balance due ${inr(calc.due)}` : "Fully paid"}
-              </span>
+            <Step
+              no={++step}
+              text={running ? "Days worked so far" : "Days to be paid"}
+              sub={daysExplained.length ? `${n} days − ${daysExplained.join(" − ")}` : `All ${n} days`}
+              amount={dayWord(daysPaid)}
+            />
+            <Step
+              no={++step}
+              text={running ? "Salary earned so far" : "Salary earned"}
+              sub={calc.salaryChanged ? undefined : `${dayWord(daysPaid)} × ${paise(perDay)}`}
+              amount={inr(calc.basicEarned)}
+              strong
+            />
+          </tbody>
+        </table>
+
+        {(extrasPlus.length > 0 || extrasMinus.length > 0 || calc.advanceRecovered > 0) && (
+          <>
+            <h2 className="mb-2 mt-6 text-[12px] font-bold uppercase tracking-wider text-muted-foreground">Extra money and deductions</h2>
+            <table className="w-full border-collapse">
+              <tbody>
+                {extrasPlus.map((a) => (
+                  <Step key={a.id} text={extraLabel(a)} sub={fmtDate(a.date)} amount={`+ ${inr(Math.round(Number(a.amount)))}`} />
+                ))}
+                {calc.deductionApplied > 0 && (
+                  <Step
+                    text={extrasMinus.length === 1 ? extraLabel(extrasMinus[0]) : "Deductions"}
+                    sub={calc.deductionCarried > 0 ? `${inr(calc.deductionCarried)} more will be taken next month (pay never goes below zero)` : undefined}
+                    amount={`− ${inr(calc.deductionApplied)}`}
+                  />
+                )}
+                {calc.advanceRecovered > 0 && (
+                  <Step
+                    text="Advance taken back"
+                    sub={advances.length ? `Cash advance given on ${advances.map((a) => fmtDate(a.date)).join(", ")}` : "Advance from earlier months"}
+                    amount={`− ${inr(calc.advanceRecovered)}`}
+                  />
+                )}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        <table className="mt-4 w-full border-collapse">
+          <tbody>
+            <Step text={running ? "Total salary so far" : "Total salary for this month"} amount={inr(calc.net)} strong />
+          </tbody>
+        </table>
+
+        {payments.length > 0 && (
+          <>
+            <h2 className="mb-2 mt-6 text-[12px] font-bold uppercase tracking-wider text-muted-foreground">Already paid</h2>
+            <table className="w-full border-collapse">
+              <tbody>
+                {payments.map((p) => (
+                  <Step
+                    key={p.id}
+                    text={`Paid by ${MODE_LABEL[p.mode]}`}
+                    sub={[fmtDate(p.paid_on), p.reference].filter(Boolean).join(" · ")}
+                    amount={`− ${inr(Math.round(Number(p.amount)))}`}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        {/* Result — never negative */}
+        <div
+          className={cn(
+            "mt-6 flex items-center justify-between rounded-xl border-2 px-6 py-4",
+            fullyPaid ? "border-present bg-present-soft" : "border-brand/40 bg-brand/5",
+          )}
+        >
+          <div>
+            <div className={cn("text-[12px] font-bold uppercase tracking-wider", fullyPaid ? "text-present-ink" : "text-brand")}>
+              {fullyPaid ? "Fully paid" : running ? "Amount so far" : "Amount to pay"}
             </div>
+            <div className="text-[12px] text-muted-foreground">Rupees {inWords(balance)} only</div>
           </div>
-          <div className="flex-1 overflow-hidden rounded-xl border">
-            <div className="bg-muted px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Advance</div>
-            <div className="divide-y px-4 text-[12px]">
-              {[
-                ["Opening balance", calc.advanceOpening],
-                ["Given this month", calc.advanceGiven],
-                ["Recovered", calc.advanceRecovered],
-              ].map(([k, v]) => (
-                <div key={k} className="flex justify-between py-1.5">
-                  <span>{k}</span>
-                  <span className="tabular font-semibold">{inr(v as number)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between border-t bg-muted/60 px-4 py-2 text-[12px] font-bold">
-              <span>Carry forward</span>
-              <span className="tabular">{inr(calc.advanceClosing)}</span>
-            </div>
-          </div>
+          <div className="font-display text-3xl font-bold tabular">{inr(balance)}</div>
         </div>
 
-        {(data.driver.bank_account || data.driver.upi_id) && (
-          <div className="text-[12px] text-muted-foreground">
-            {data.driver.bank_account && `Bank A/c ${data.driver.bank_account}${data.driver.bank_ifsc ? ` (IFSC ${data.driver.bank_ifsc})` : ""}`}
-            {data.driver.bank_account && data.driver.upi_id && "  ·  "}
-            {data.driver.upi_id && `UPI ${data.driver.upi_id}`}
-          </div>
-        )}
+        <div className="mt-3 space-y-1 text-[11.5px] text-muted-foreground">
+          {calc.overpaid > 0 && <p>You were paid {inr(calc.overpaid)} more than this month's salary. It will be taken from next month's salary.</p>}
+          {calc.advanceClosing > 0 && <p>Advance still to be taken back next month: {inr(calc.advanceClosing)}</p>}
+          {running && <p>This month is still running. The final amount is known after {fmtDate(to)}. Salary is paid on {fmtDate(calc.dueDate)}.</p>}
+          {!running && <p>Salary is paid on {fmtDate(calc.dueDate)}.</p>}
+        </div>
       </div>
       <Footer />
     </div>
   );
 }
 
+/** Old name kept so existing imports keep working. */
+export const SalarySlip = SalaryStatement;
+
 // ── Attendance report ───────────────────────────────────────
 export function AttendanceReport({ data, calc }: { data: DriverData; calc: MonthCalc }) {
-  const blanks = firstWeekday(calc.month);
+  const blanks = firstWeekday(calc.days[0]?.date ?? calc.month);
   const special = calc.days.filter((d) => d.employed && (d.source !== "default" || d.note));
   return (
     <div className="flex min-h-[1123px] flex-col bg-white font-sans text-foreground">
-      <DocHeader data={data} title="Attendance report" month={calc.month} />
+      <DocHeader data={data} title="Attendance report" month={calc.month} period={`${fmtDate(calc.days[0]?.date ?? calc.month)} – ${fmtDate(calc.days[calc.days.length - 1]?.date ?? calc.month)}`} />
       <DriverBlock data={data} calc={calc} />
       <div className="space-y-6 px-10 py-6">
         <Counts calc={calc} />

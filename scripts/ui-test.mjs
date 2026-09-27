@@ -27,14 +27,22 @@ const liveAmount = async (page) => {
 const tileCount = async (page, status) => Number(await page.getByTestId("tile-" + status).first().getAttribute("data-count"));
 
 // Same rules as src/lib/payroll.ts, recomputed independently for comparison.
-const today = new Date();
-const y = today.getFullYear();
-const m = today.getMonth();
-const daysInMonth = new Date(y, m + 1, 0).getDate();
-const dayOfMonth = today.getDate();
+// Salary runs from the pay day of one month to the day before the next (5th → 4th).
+const PAY_DAY = 5;
+const midnight = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const today = midnight(new Date());
+const cycleStart =
+  today.getDate() >= PAY_DAY
+    ? new Date(today.getFullYear(), today.getMonth(), PAY_DAY)
+    : new Date(today.getFullYear(), today.getMonth() - 1, PAY_DAY);
+const cycleEnd = new Date(cycleStart.getFullYear(), cycleStart.getMonth() + 1, PAY_DAY - 1);
+const DAY = 86400000;
+const cycleDays = Math.round((cycleEnd - cycleStart) / DAY) + 1;
+const daysSoFar = Math.round((today - cycleStart) / DAY) + 1;
 const SALARY_A = 30000;
-const rateA = SALARY_A / daysInMonth;
-const expectedNetA = Math.round(rateA * (dayOfMonth - 1)); // one absent day (the 3rd)
+const rateA = SALARY_A / cycleDays;
+const expectedNetA = Math.round(rateA * (daysSoFar - 1)); // one absent day, on day 2 of the cycle
+const absentDay = new Date(cycleStart.getTime() + DAY).getDate();
 
 async function run() {
   const browser = await chromium.launch({ channel: "msedge", headless: true });
@@ -95,6 +103,9 @@ async function run() {
     await page.close();
   }
 
+  // a day inside the cycle that is not the seeded absence and not in the future
+  const pickDay = new Date(cycleStart.getTime() + 2 * DAY).getDate();
+
   // ── 3. Marking a day changes the salary immediately ───────
   {
     const page = await open("/admin/drivers/d-a");
@@ -102,7 +113,7 @@ async function run() {
     const netBefore = await liveAmount(page);
 
     // open day 10 of this month and mark Absent
-    await page.getByRole("button", { name: "10", exact: true }).first().click();
+    await page.getByRole("button", { name: String(pickDay), exact: true }).first().click();
     await page.getByRole("dialog").waitFor();
     ok("day sheet opens", await page.getByRole("dialog").isVisible());
 
@@ -129,7 +140,7 @@ async function run() {
     });
 
     // undo: set it back to Present
-    await page.getByRole("button", { name: "10", exact: true }).first().click();
+    await page.getByRole("button", { name: String(pickDay), exact: true }).first().click();
     await page.getByRole("dialog").getByRole("button", { name: "Present" }).click();
     await page.getByRole("dialog").getByRole("button", { name: /^Save$/ }).click();
     await page.getByRole("dialog").waitFor({ state: "hidden" });
@@ -137,6 +148,33 @@ async function run() {
     const netBack = await liveAmount(page);
     ok("setting back to Present restores the pay", netBack === netBefore, { netBack, netBefore });
     await shot(page, "03-after-marking");
+    await page.close();
+  }
+
+  // ── 3b. Paid / unpaid box ─────────────────────────────────
+  {
+    const page = await open("/admin/drivers/d-a");
+    const box = page.getByTestId("pay-box");
+    await box.waitFor();
+    ok("month starts unpaid", (await box.getAttribute("data-status")) === "unpaid", await box.getAttribute("data-status"));
+    const remaining = Number(await page.getByTestId("remaining").getAttribute("data-value"));
+    ok(`remaining to pay = salary so far (${expectedNetA})`, remaining === expectedNetA, remaining);
+
+    await box.getByRole("button", { name: /Mark as paid/ }).click();
+    await page.getByRole("dialog").waitFor();
+    await page.getByRole("dialog").getByRole("button", { name: "UPI", exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: /Mark as paid/ }).click();
+    await page.getByRole("dialog").waitFor({ state: "hidden" });
+    await page.waitForFunction(() => document.querySelector("[data-testid=pay-box]")?.getAttribute("data-status") === "paid", null, { timeout: 5000 });
+    ok("after Mark as paid the month shows Paid", (await box.getAttribute("data-status")) === "paid");
+    ok("nothing left to pay", (await page.getByTestId("remaining").count()) === 0);
+
+    await box.getByRole("button", { name: /Mark as unpaid/ }).click();
+    await page.getByRole("dialog").getByRole("button", { name: /Confirm/ }).click();
+    await page.waitForFunction(() => document.querySelector("[data-testid=pay-box]")?.getAttribute("data-status") === "unpaid", null, { timeout: 5000 });
+    const back = Number(await page.getByTestId("remaining").getAttribute("data-value"));
+    ok("Mark as unpaid brings the full amount back", back === expectedNetA, back);
+    await shot(page, "03b-paybox");
     await page.close();
   }
 
@@ -155,6 +193,7 @@ async function run() {
     await page.getByText("Mark attendance").waitFor();
     const rows = await page.locator("a[href^='/admin/drivers/']").count();
     ok("today lists both working drivers", rows === 2, rows);
+    ok("a driver who left today is not on the list", (await page.getByText("Left Today Driver").count()) === 0);
 
     const before = await tileCount(page, "present");
     await page.locator("button[aria-label='Absent']").first().click();

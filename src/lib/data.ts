@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { commit, DATASET_KEY, driverSlice, loadDataset, loadPortal, NotFoundError } from "./store";
+import { commit, DATASET_KEY, driverSlice, loadDataset, loadPortal, NotFoundError, queryClient } from "./store";
+import { supabase } from "./supabase";
 import { inviteAdmin } from "./adminApi";
 import { uid, newDriverCode, newShareToken } from "./utils";
-import { monthOf } from "./dates";
+import { cycleOf, DEFAULT_PAY_DAY } from "./dates";
 import type { Adjustment, Company, Dataset, DayStatus, Driver, MonthCalc, Payment } from "./types";
 
 // ── Queries ─────────────────────────────────────────────────
@@ -30,6 +31,7 @@ export function usePortal(code: string | null) {
 
 // ── Helpers ─────────────────────────────────────────────────
 const without = <T,>(rows: T[], pred: (r: T) => boolean) => rows.filter((r) => !pred(r));
+const qcInvalidate = () => queryClient()?.invalidateQueries({ queryKey: DATASET_KEY });
 
 /** Strip client-only fields before sending a driver row to the server. */
 function driverRow(d: Driver) {
@@ -108,6 +110,24 @@ export async function resetShareLink(driverId: string) {
   return share_token;
 }
 
+/**
+ * Deletes a driver and EVERYTHING belonging to them: attendance, salary history,
+ * extras, advances, payments, locked months and their photo. Cannot be undone.
+ * Needs internet — this is never queued offline.
+ */
+export async function deleteDriver(driver: Driver) {
+  if (!navigator.onLine) throw new Error("Deleting a driver needs an internet connection.");
+
+  const { error } = await supabase.from("drivers").delete().eq("id", driver.id);
+  if (error) throw error;
+
+  // remove the photo file too, so nothing is left behind in storage
+  const path = driver.photo_url?.split("/object/public/media/")[1];
+  if (path) await supabase.storage.from("media").remove([path]).catch(() => undefined);
+
+  qcInvalidate();
+}
+
 export function setDriverActive(driverId: string, active: boolean, leftOn: string | null) {
   const values = { active, left_on: active ? null : leftOn };
   return commit([{ kind: "update", table: "drivers", match: { id: driverId }, values }], (d) => ({
@@ -180,7 +200,9 @@ export function removeHoliday(id: string) {
 
 // ── Extras, deductions, advances ────────────────────────────
 export function addAdjustment(a: Omit<Adjustment, "id" | "month">) {
-  const row: Adjustment = { ...a, id: uid(), month: monthOf(a.date) };
+  // filed under the salary cycle (5th → 4th) that the date falls in
+  const payDay = queryClient()?.getQueryData<Dataset>(DATASET_KEY)?.company.pay_day ?? DEFAULT_PAY_DAY;
+  const row: Adjustment = { ...a, id: uid(), month: cycleOf(a.date, payDay) };
   return commit([{ kind: "upsert", table: "adjustments", rows: [row as unknown as Record<string, unknown>] }], (d) => ({
     ...d,
     adjustments: [...d.adjustments, row],
@@ -200,6 +222,22 @@ export function addPayment(p: Omit<Payment, "id">) {
   return commit([{ kind: "upsert", table: "payments", rows: [row as unknown as Record<string, unknown>] }], (d) => ({
     ...d,
     payments: [...d.payments, row],
+  }));
+}
+
+/** A payment belongs to the salary month it pays for; this moves it there. */
+export function movePayment(id: string, month: string) {
+  return commit([{ kind: "update", table: "payments", match: { id }, values: { month } }], (d) => ({
+    ...d,
+    payments: d.payments.map((p) => (p.id === id ? { ...p, month } : p)),
+  }));
+}
+
+/** "Mark as unpaid": removes every payment recorded for this driver's salary month. */
+export function clearPaymentsForMonth(driverId: string, month: string) {
+  return commit([{ kind: "delete", table: "payments", match: { driver_id: driverId, month } }], (d) => ({
+    ...d,
+    payments: d.payments.filter((p) => !(p.driver_id === driverId && p.month === month)),
   }));
 }
 

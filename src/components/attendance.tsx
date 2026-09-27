@@ -3,17 +3,18 @@ import { animate } from "framer-motion";
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { cn, inr } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
-import { currentMonth, firstWeekday, fmtMonth, shiftMonth, todayISO, weekdayNames } from "@/lib/dates";
+import { currentMonth, cycleLabel, DEFAULT_PAY_DAY, firstWeekday, fmtMonth, shiftMonth, todayISO, weekdayNames } from "@/lib/dates";
 import type { DayInfo, DayStatus, MonthCalc } from "@/lib/types";
 import { STATUS_STYLES } from "./ui";
 
 // ── Month switcher ──────────────────────────────────────────
-export function MonthSwitcher({ month, onChange, min, max = currentMonth(), locked }: {
+export function MonthSwitcher({ month, onChange, min, max = currentMonth(), locked, payDay = DEFAULT_PAY_DAY }: {
   month: string;
   onChange: (m: string) => void;
   min?: string;
   max?: string;
   locked?: boolean;
+  payDay?: number;
 }) {
   const { lang } = useI18n();
   const prev = shiftMonth(month, -1);
@@ -28,9 +29,13 @@ export function MonthSwitcher({ month, onChange, min, max = currentMonth(), lock
       >
         <ChevronLeft className="size-5" />
       </button>
-      <div className="flex items-center gap-2 font-display text-base font-bold">
-        {fmtMonth(month, lang)}
-        {locked && <Lock className="size-4 text-gold" />}
+      <div className="text-center">
+        <div className="flex items-center justify-center gap-2 font-display text-base font-bold">
+          {fmtMonth(month, lang)}
+          {locked && <Lock className="size-4 text-gold" />}
+        </div>
+        {/* the salary period this month actually covers */}
+        <div className="text-[11px] text-muted-foreground">{cycleLabel(month, payDay, lang)}</div>
       </div>
       <button
         className="grid size-10 place-items-center rounded-lg hover:bg-muted disabled:opacity-30"
@@ -52,7 +57,7 @@ export function AttendanceCalendar({ calc, onDayClick, compact }: {
 }) {
   const { lang } = useI18n();
   const today = todayISO();
-  const blanks = firstWeekday(calc.month);
+  const blanks = firstWeekday(calc.days[0]?.date ?? calc.month);
 
   return (
     // capped so the day squares stay a sensible size on wide screens
